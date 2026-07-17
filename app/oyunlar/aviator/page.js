@@ -153,6 +153,21 @@ export default function AviatorPage() {
         return () => { if (pollRef.current) clearInterval(pollRef.current); };
     }, [status, authFetch, refreshUser]);
 
+    // Sekme arka plandayken tarayıcılar requestAnimationFrame'i büyük ölçüde
+    // yavaşlatır/durdurur — bu, ekranın gerçek süreden geri kalmasına yol açar.
+    // Sekmeye dönünce çarpanı anında (bir sonraki throttled frame'i beklemeden) tazele.
+    useEffect(() => {
+        function onVisible() {
+            if (document.visibilityState !== 'visible') return;
+            if (status !== 'flying' || !round?.startedAt) return;
+            const startedAtMs = new Date(round.startedAt.includes('T') ? round.startedAt : round.startedAt.replace(' ', 'T') + 'Z').getTime();
+            lastTickRef.current = 0;
+            setMultiplier(multiplierAtElapsed(Date.now() - startedAtMs));
+        }
+        document.addEventListener('visibilitychange', onVisible);
+        return () => document.removeEventListener('visibilitychange', onVisible);
+    }, [status, round]);
+
     async function startGame() {
         setError('');
         const betNum = Math.round(Number(bet));
@@ -184,10 +199,20 @@ export default function AviatorPage() {
 
     async function cashOut() {
         setBusy(true);
+        // İyimser anlık güncelleme: buton basılır basılmaz geçen süreye göre çarpanı
+        // hemen tazele — rAF arka planda kısıtlanmışsa (sekme gizliyken tarayıcılar
+        // requestAnimationFrame'i yavaşlatır/durdurur) ekranın bayat kalmasını önler.
+        if (round?.startedAt) {
+            const startedAtMs = new Date(round.startedAt.includes('T') ? round.startedAt : round.startedAt.replace(' ', 'T') + 'Z').getTime();
+            setMultiplier(multiplierAtElapsed(Date.now() - startedAtMs));
+        }
         try {
             const res = await authFetch('/api/games/aviator/cashout', { method: 'POST' });
             const data = await res.json();
             if (data.success) {
+                // Ekranda gösterilen sayı HER ZAMAN sunucunun ödemeyi hesapladığı
+                // gerçek çarpanla eşleşmeli — rAF'ın bayat bıraktığı değeri değil.
+                setMultiplier(data.multiplier);
                 setStatus('cashed');
                 setRound(null);
                 setLastResult({ type: 'win', multiplier: data.multiplier, payout: data.payout });
