@@ -1,0 +1,24 @@
+{
+  "name": "YomiTranslate",
+  "short_name": "Yomi",
+  "description": "AI-Powered Manga Translation Platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0c",
+  "theme_color": "#5e72e4",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/api/favicon",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
