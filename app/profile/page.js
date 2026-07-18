@@ -213,6 +213,7 @@ const { settings: siteSettings } = useSettings() || {};
 
     // Profile form
     const [username, setUsername] = useState('');
+    const [displayName, setDisplayName] = useState('');
     const [email, setEmail] = useState('');
     const [avatarUrl, setAvatarUrl] = useState('');
     const [saving, setSaving] = useState(false);
@@ -273,6 +274,7 @@ const { settings: siteSettings } = useSettings() || {};
     useEffect(() => {
         if (user) {
             setUsername(user.username);
+            setDisplayName(user.display_name || '');
             setEmail(user.email);
             setAvatarUrl(user.avatar_url || '');
             fetchFavorites();
@@ -389,7 +391,7 @@ const { settings: siteSettings } = useSettings() || {};
             const res = await authFetch('/api/auth/profile', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, email, avatar_url: avatarUrl }),
+                body: JSON.stringify({ username, email, avatar_url: avatarUrl, display_name: displayName }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
@@ -605,18 +607,13 @@ const { settings: siteSettings } = useSettings() || {};
             {/* ── Avatar + Bilgi Satırı ── */}
             <div className="prf-identity">
                 {/* Avatar */}
-                <div className="prf-avatar-wrap" style={{ borderColor: cultivation.color, boxShadow: `0 0 0 3px ${cultivation.color}40`, position: 'relative' }}>
-                    <div className="prf-avatar-photo">
-                        {(!user.avatar_url || user.avatar_url === '/default-avatar.png') ? (
-                            <div style={{ width:'100%', height:'100%', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg-tertiary)', color:cultivation.color, fontSize:'2.8rem', fontWeight:800 }}>
-                                {user.username?.[0]?.toUpperCase()}
-                            </div>
-                        ) : (
-                            <img src={user.avatar_url} alt="Avatar" style={{ width:'100%', height:'100%', borderRadius:'50%', objectFit:'cover' }} />
-                        )}
-                    </div>
-                    {user.equipped?.frame?.image_url && (
-                        <img src={user.equipped.frame.image_url} alt="" className="avatar-frame-overlay" style={{ position: 'absolute', inset: '-10px', width: 'calc(100% + 20px)', height: 'calc(100% + 20px)', objectFit: 'contain', pointerEvents: 'none' }} />
+                <div className="prf-avatar-wrap" style={{ borderColor: cultivation.color, boxShadow: `0 0 0 3px ${cultivation.color}40` }}>
+                    {(!user.avatar_url || user.avatar_url === '/default-avatar.png') ? (
+                        <div style={{ width:'100%', height:'100%', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg-tertiary)', color:cultivation.color, fontSize:'2.8rem', fontWeight:800 }}>
+                            {user.username?.[0]?.toUpperCase()}
+                        </div>
+                    ) : (
+                        <img src={user.avatar_url} alt="Avatar" style={{ width:'100%', height:'100%', borderRadius:'50%', objectFit:'cover' }} />
                     )}
                 </div>
 
@@ -624,11 +621,6 @@ const { settings: siteSettings } = useSettings() || {};
                 <div className="prf-identity-info">
                     <h1 className="prf-username">
                         {user.username}
-                        {user.equipped?.title && (
-                            <span style={{ marginLeft: 10, fontSize: '0.55em', fontWeight: 700, color: user.equipped.title.title_color || cultivation.color, verticalAlign: 'middle' }}>
-                                {user.equipped.title.name}
-                            </span>
-                        )}
                     </h1>
 
                     <div className="prf-meta-row">
@@ -645,11 +637,6 @@ const { settings: siteSettings } = useSettings() || {};
                                 {b.icon} {b.label}
                             </span>
                         ))}
-                        {user.equipped?.badge && (
-                            <span title={user.equipped.badge.name} style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:'0.72rem', fontWeight:700, padding:'2px 8px', borderRadius:10, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.15)' }}>
-                                <img src={user.equipped.badge.image_url} alt="" style={{ width: 14, height: 14, objectFit: 'contain' }} /> {user.equipped.badge.name}
-                            </span>
-                        )}
                     </div>
 
                     {/* XP Bar */}
@@ -1266,6 +1253,10 @@ const { settings: siteSettings } = useSettings() || {};
                         <div className="form-group">
                             <label>Kullanıcı Adı</label>
                             <input className="form-input" value={username} onChange={e => setUsername(e.target.value)} required minLength={3} />
+                        </div>
+                        <div className="form-group">
+                            <label>Görünen İsim <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '0.78rem' }}>(sohbet ve yorumlarda bu görünür — boş bırakılırsa kullanıcı adı gösterilir)</span></label>
+                            <input className="form-input" value={displayName} onChange={e => setDisplayName(e.target.value)} maxLength={30} placeholder={username} />
                         </div>
                         <div className="form-group">
                             <label>E-posta</label>

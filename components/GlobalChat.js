@@ -3,7 +3,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from './AuthProvider';
 import { getCultivationData } from '@/lib/gamification';
-import { BADGE_OPTIONS } from '@/lib/badges';
 
 const POLL_MS = 3000;
 const MAX_LEN = 500;
@@ -60,49 +59,6 @@ function RankIcon({ icon, size = 12, color = 'currentColor' }) {
         </svg>
     );
     return null;
-}
-
-// Özel rozet ikonları (badges.js'teki icon anahtarlarına karşılık gelen SVG'ler)
-function BadgeIcon({ icon, size = 11, color = 'currentColor' }) {
-    const s = { width: size, height: size, flexShrink: 0 };
-    if (icon === 'star') return (
-        <svg {...s} viewBox="0 0 24 24" fill={color} stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z" /></svg>
-    );
-    if (icon === 'globe') return (
-        <svg {...s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
-    );
-    if (icon === 'upload') return (
-        <svg {...s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
-    );
-    if (icon === 'heart') return (
-        <svg {...s} viewBox="0 0 24 24" fill={color} stroke="none"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z" /></svg>
-    );
-    if (icon === 'trophy') return (
-        <svg {...s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 21h8" /><path d="M12 17v4" /><path d="M7 4h10v5a5 5 0 0 1-10 0V4z" /><path d="M17 5h3a2 2 0 0 1-2 4h-1" /><path d="M7 5H4a2 2 0 0 0 2 4h1" /></svg>
-    );
-    if (icon === 'check') return (
-        <svg {...s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-    );
-    return null;
-}
-
-function MiniBadges({ badges }) {
-    if (!badges || badges.length === 0) return null;
-    return badges.map(badgeId => {
-        const opt = BADGE_OPTIONS.find(b => b.id === badgeId);
-        if (!opt) return null;
-        const color = opt.color || '#9ca3af';
-        return (
-            <span
-                key={badgeId}
-                title={opt.label}
-                className="gchat-badge"
-                style={{ color, borderColor: `${color}55`, background: `${color}18` }}
-            >
-                <BadgeIcon icon={opt.icon} size={11} color={color} /> {opt.label}
-            </span>
-        );
-    });
 }
 
 export default function GlobalChat() {
@@ -194,15 +150,19 @@ export default function GlobalChat() {
     }
 
     return (
-        <div className="gchat-card">
-            <div className="gchat-header">
-                <span className="gchat-header-title">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+        <>
+            <div className="section-header">
+                <h2 className="section-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                     Sohbet
+                </h2>
+                <span className="gchat-live-badge">
+                    <span className="gchat-live-dot" />
+                    Canlı
                 </span>
-                <span className="gchat-live-dot" title="Canlı" />
             </div>
 
+            <div className="glass-panel gchat-card">
             <div className="gchat-list" ref={listRef}>
                 {!loaded && <div className="gchat-empty">Yükleniyor…</div>}
                 {loaded && messages.length === 0 && <div className="gchat-empty">Henüz mesaj yok — ilk mesajı sen at!</div>}
@@ -225,7 +185,6 @@ export default function GlobalChat() {
                                         {cult.icon && <RankIcon icon={cult.icon} size={11} color={cult.color} />}
                                         {cult.title}
                                     </span>
-                                    <MiniBadges badges={m.badges} />
                                     <span className="gchat-time">{timeAgo(m.created_at)}</span>
                                 </div>
                                 <div className="gchat-text">{m.message}</div>
@@ -239,6 +198,7 @@ export default function GlobalChat() {
                 <form className="gchat-input-row" onSubmit={sendMessage}>
                     <input
                         type="text"
+                        className="form-input"
                         value={input}
                         maxLength={MAX_LEN}
                         placeholder="Bir mesaj yaz…"
@@ -246,7 +206,7 @@ export default function GlobalChat() {
                         disabled={sending}
                     />
                     <span className="gchat-counter">{input.length}/{MAX_LEN}</span>
-                    <button type="submit" className="gchat-send-btn" disabled={sending || !input.trim()} aria-label="Gönder">
+                    <button type="submit" className="btn btn-primary gchat-send-btn" disabled={sending || !input.trim()} aria-label="Gönder">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
                     </button>
                 </form>
@@ -256,27 +216,23 @@ export default function GlobalChat() {
                 </div>
             )}
             {error && <div className="gchat-error">{error}</div>}
+            </div>
 
             <style jsx>{`
                 .gchat-card {
-                    border-radius: var(--radius-lg);
-                    background: var(--bg-card);
-                    box-shadow: inset 0 0 0 1px var(--border-color), var(--shadow);
                     display: flex;
                     flex-direction: column;
-                    overflow: hidden;
                 }
-                .gchat-header {
-                    display: flex; align-items: center; justify-content: space-between;
-                    padding: 14px 18px;
-                    border-bottom: 1px solid var(--border-color);
-                }
-                .gchat-header-title {
-                    display: flex; align-items: center; gap: 8px;
-                    font-weight: 800; font-size: 1rem;
+                .gchat-live-badge {
+                    display: inline-flex; align-items: center; gap: 6px;
+                    font-size: 0.78rem; font-weight: 700; color: var(--success);
+                    background: rgba(45,206,137,0.12);
+                    border: 1px solid rgba(45,206,137,0.3);
+                    border-radius: 20px;
+                    padding: 4px 12px;
                 }
                 .gchat-live-dot {
-                    width: 9px; height: 9px; border-radius: 50%;
+                    width: 8px; height: 8px; border-radius: 50%;
                     background: var(--success);
                     box-shadow: 0 0 0 0 rgba(45,206,137,0.5);
                     animation: gchat-pulse 2s infinite;
@@ -326,12 +282,6 @@ export default function GlobalChat() {
                     padding: 1px 8px; border-radius: 20px;
                     border: 1px solid;
                 }
-                .gchat-badge {
-                    display: inline-flex; align-items: center; gap: 3px;
-                    font-size: 0.68rem; padding: 1px 6px; border-radius: 20px;
-                    border: 1px solid;
-                    font-weight: 700;
-                }
                 .gchat-time { font-size: 0.72rem; color: var(--text-muted); margin-left: auto; }
                 .gchat-text {
                     font-size: 0.88rem;
@@ -342,31 +292,24 @@ export default function GlobalChat() {
                 .gchat-input-row {
                     display: flex; align-items: center; gap: 8px;
                     padding: 12px 14px;
-                    border-top: 1px solid var(--border-color);
+                    border-top: 1px solid rgba(255, 255, 255, 0.05);
                 }
-                .gchat-input-row input {
+                .gchat-input-row :global(.form-input) {
                     flex: 1;
-                    background: var(--bg-tertiary);
-                    border: 1px solid var(--border-color);
-                    border-radius: 10px;
                     padding: 10px 12px;
-                    color: var(--text-primary);
                     font-size: 0.88rem;
                 }
-                .gchat-input-row input:focus { outline: none; border-color: var(--accent); }
                 .gchat-counter { font-size: 0.72rem; color: var(--text-muted); white-space: nowrap; }
                 .gchat-send-btn {
+                    width: 38px; height: 38px; padding: 0; flex-shrink: 0;
                     display: flex; align-items: center; justify-content: center;
-                    width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
-                    background: var(--accent); color: white; border: none; cursor: pointer;
                 }
-                .gchat-send-btn:disabled { opacity: 0.5; cursor: default; }
                 .gchat-login-cta {
                     padding: 14px 18px;
                     text-align: center;
                     font-size: 0.88rem;
                     color: var(--text-muted);
-                    border-top: 1px solid var(--border-color);
+                    border-top: 1px solid rgba(255, 255, 255, 0.05);
                 }
                 .gchat-login-cta a { color: var(--accent); font-weight: 700; }
                 .gchat-error {
@@ -378,6 +321,6 @@ export default function GlobalChat() {
                     .gchat-list { height: 300px; }
                 }
             `}</style>
-        </div>
+        </>
     );
 }

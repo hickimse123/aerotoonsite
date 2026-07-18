@@ -7,6 +7,7 @@ import SeriesCard from '@/components/SeriesCard';
 import GlassmorphismCard from '@/components/UpdateCards/GlassmorphismCard';
 import MostReadWidget from '@/components/MostReadWidget';
 import TrendingWidget from '@/components/TrendingWidget';
+import GlobalChat from '@/components/GlobalChat';
 import HeroSliderWidget from '@/components/HeroSliderWidget';
 import { useAuth } from '@/components/AuthProvider';
 
@@ -735,6 +736,11 @@ export default function HomeClient({ initialData } = {}) {
           
           {/* LEFT COLUMN: LATEST UPDATES */}
           <div className="main-content" id="latest-updates-section">
+            {/* Genel Sohbet — trend olanların altında, son güncellemelerin üstünde, editör seçiminin solunda */}
+            <div className="gchat-slot">
+              <GlobalChat />
+            </div>
+
             <div className="section-header">
               <h2 className="section-title">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>

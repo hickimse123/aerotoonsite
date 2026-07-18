@@ -20,7 +20,10 @@ export async function generateMetadata({ params }) {
         const slug = series.slug || series.id;
         const chNum = chapter?.chapter_number ?? chapterNumber;
         const chTitle = chapter?.title ? ` — ${chapter.title}` : '';
-        const canonicalUrl = `${BASE_URL}/series/${slug}/chapter/${chNum}`;
+        // Bu rota (/series/.../chapter/...) sitemap'teki GERÇEK adresle (/seri/.../bolum/...)
+        // aynı içeriğin bir kopyası — Google'da "duplicate content" yaratmaması için
+        // canonical'ı gerçek adrese işaret ediyor ve kendisi noindex.
+        const canonicalUrl = `${BASE_URL}/seri/${slug}/bolum/${chNum}`;
         const coverUrl = series.cover_url
             ? (series.cover_url.startsWith('http')
                 ? series.cover_url
@@ -62,6 +65,7 @@ export async function generateMetadata({ params }) {
             description,
             keywords,
             alternates: { canonical: canonicalUrl },
+            robots: { index: false, follow: true },
             openGraph: {
                 type: 'article',
                 url: canonicalUrl,
@@ -85,7 +89,7 @@ export async function generateMetadata({ params }) {
             },
         };
     } catch {
-        return { title: 'YomiTranslate — Türkçe Manga Oku' };
+        return { title: 'YomiTranslate — Türkçe Manga Oku', robots: { index: false, follow: true } };
     }
 }
 

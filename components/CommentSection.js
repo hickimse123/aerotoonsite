@@ -614,9 +614,6 @@ useEffect(() => {
                             {c.username?.[0]?.toUpperCase() || '?'}
                         </div>
                     )}
-                    {c.frame?.image_url && (
-                        <img src={c.frame.image_url} alt="" style={{ position: 'absolute', inset: '-5px', width: 'calc(100% + 10px)', height: 'calc(100% + 10px)', objectFit: 'contain', pointerEvents: 'none' }} />
-                    )}
                     {badge && (
                         <div className={`asura-avatar-badge ${badge.class}`}>
                             <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" stroke="none" style={{ flexShrink: 0 }}>
@@ -637,9 +634,6 @@ useEffect(() => {
                             </span>
                         </Link>
                                             <UserBadges badges={c.badges} />
-                                            {c.title && (
-                                                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: c.title.title_color || 'var(--accent)' }}>{c.title.name}</span>
-                                            )}
                                             {isOfficial && (
                                 <span className="official-badge" style={{
                                     display: 'inline-flex', alignItems: 'center', gap: 4,

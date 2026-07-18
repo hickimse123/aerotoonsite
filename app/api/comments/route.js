@@ -71,7 +71,7 @@ export async function GET(request) {
         const totalComments = totalQuery.count;
 
         const comments = await db.prepare(`
-            SELECT c.*, u.username, u.avatar_url, u.yomi_points, u.role, u.equipped_frame_id, u.equipped_title_id,
+            SELECT c.*, u.username, u.avatar_url, u.yomi_points, u.role,
                 (SELECT rank FROM (SELECT id, DENSE_RANK() OVER (ORDER BY yomi_points DESC) as rank FROM users) WHERE id = c.user_id) as leaderboard_rank,
                 (SELECT COUNT(*) FROM comments r WHERE r.parent_id = c.id) as reply_count
             FROM comments c
@@ -85,7 +85,7 @@ export async function GET(request) {
         const allRepliesMap = new Map(); // commentId -> reply[]
         for (const comment of comments) {
             const replies = await db.prepare(`
-                SELECT c.*, u.username, u.avatar_url, u.yomi_points, u.role, u.equipped_frame_id, u.equipped_title_id,
+                SELECT c.*, u.username, u.avatar_url, u.yomi_points, u.role,
                 (SELECT rank FROM (SELECT id, DENSE_RANK() OVER (ORDER BY yomi_points DESC) as rank FROM users) WHERE id = c.user_id) as leaderboard_rank
                 FROM comments c
                 JOIN users u ON c.user_id = u.id
@@ -112,33 +112,6 @@ export async function GET(request) {
             }
         }
 
-        // Yorum yazarlarının kuşandığı mağaza çerçeve/unvan öğelerini tek seferde topla
-        const cosmeticIds = new Set();
-        for (const comment of comments) {
-            if (comment.equipped_frame_id) cosmeticIds.add(comment.equipped_frame_id);
-            if (comment.equipped_title_id) cosmeticIds.add(comment.equipped_title_id);
-        }
-        for (const replies of allRepliesMap.values()) {
-            for (const reply of replies) {
-                if (reply.equipped_frame_id) cosmeticIds.add(reply.equipped_frame_id);
-                if (reply.equipped_title_id) cosmeticIds.add(reply.equipped_title_id);
-            }
-        }
-        const cosmeticsById = new Map();
-        if (cosmeticIds.size > 0) {
-            const placeholders = Array.from(cosmeticIds).map(() => '?').join(',');
-            const rows = await db.prepare(
-                `SELECT id, type, name, image_url, title_color FROM shop_items WHERE id IN (${placeholders})`
-            ).all(...cosmeticIds);
-            for (const row of rows) cosmeticsById.set(row.id, row);
-        }
-        function attachCosmetics(row) {
-            return {
-                frame: row.equipped_frame_id ? (cosmeticsById.get(row.equipped_frame_id) || null) : null,
-                title: row.equipped_title_id ? (cosmeticsById.get(row.equipped_title_id) || null) : null,
-            };
-        }
-
         const commentsWithReactions = await Promise.all(comments.map(async comment => {
             const reactions = await db.prepare(`
                 SELECT emoji, COUNT(*) as count, GROUP_CONCAT(user_id) as user_ids
@@ -153,10 +126,10 @@ export async function GET(request) {
                     SELECT emoji, COUNT(*) as count, GROUP_CONCAT(user_id) as user_ids
                     FROM reactions WHERE comment_id = ? GROUP BY emoji
                 `).all(reply.id);
-                return { ...reply, reactions: rReactions, badges: badgesByUser.get(reply.user_id) || [], ...attachCosmetics(reply) };
+                return { ...reply, reactions: rReactions, badges: badgesByUser.get(reply.user_id) || [] };
             }));
 
-            return { ...comment, reactions, replies: repliesWithReactions, badges, ...attachCosmetics(comment) };
+            return { ...comment, reactions, replies: repliesWithReactions, badges };
         }));
 
         return NextResponse.json({ 

@@ -243,6 +243,7 @@ export default function AviatorPage() {
 
     return (
         <div className="page-container glass-page-container" style={{ maxWidth: 720, padding: '24px 16px' }}>
+            <Link href="/oyunlar" className="games-back-link">← Oyunlar</Link>
             <div className="glass-panel" style={{ padding: 20, marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
                 <div>
                     <h1 style={{ fontSize: '1.5rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
