@@ -213,6 +213,7 @@ const { settings: siteSettings } = useSettings() || {};
 
     // Profile form
     const [username, setUsername] = useState('');
+    const [displayName, setDisplayName] = useState('');
     const [email, setEmail] = useState('');
     const [avatarUrl, setAvatarUrl] = useState('');
     const [saving, setSaving] = useState(false);
@@ -273,6 +274,7 @@ const { settings: siteSettings } = useSettings() || {};
     useEffect(() => {
         if (user) {
             setUsername(user.username);
+            setDisplayName(user.display_name || '');
             setEmail(user.email);
             setAvatarUrl(user.avatar_url || '');
             fetchFavorites();
@@ -389,7 +391,7 @@ const { settings: siteSettings } = useSettings() || {};
             const res = await authFetch('/api/auth/profile', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, email, avatar_url: avatarUrl }),
+                body: JSON.stringify({ username, email, avatar_url: avatarUrl, display_name: displayName }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
@@ -1251,6 +1253,10 @@ const { settings: siteSettings } = useSettings() || {};
                         <div className="form-group">
                             <label>Kullanıcı Adı</label>
                             <input className="form-input" value={username} onChange={e => setUsername(e.target.value)} required minLength={3} />
+                        </div>
+                        <div className="form-group">
+                            <label>Görünen İsim <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '0.78rem' }}>(sohbet ve yorumlarda bu görünür — boş bırakılırsa kullanıcı adı gösterilir)</span></label>
+                            <input className="form-input" value={displayName} onChange={e => setDisplayName(e.target.value)} maxLength={30} placeholder={username} />
                         </div>
                         <div className="form-group">
                             <label>E-posta</label>

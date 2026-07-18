@@ -12,7 +12,7 @@ export async function GET(request) {
 
         // Fetch full profile (getVerifiedUser returns a lighter subset)
         const user = await db.prepare(
-            'SELECT id, username, email, avatar_url, cover_url, role, yomi_points, last_daily_login, last_avatar_update, last_cover_update, avatar_changes_today, cover_changes_today, created_at FROM users WHERE id = ?'
+            'SELECT id, username, email, display_name, avatar_url, cover_url, role, yomi_points, last_daily_login, last_avatar_update, last_cover_update, avatar_changes_today, cover_changes_today, created_at FROM users WHERE id = ?'
         ).get(result.user.id);
 
         if (!user) {

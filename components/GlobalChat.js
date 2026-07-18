@@ -19,14 +19,87 @@ function timeAgo(d) {
     return `${Math.floor(h / 24)} gün`;
 }
 
+// Rütbe (cultivation rank) ikonu — profile sayfasındaki RankIcon ile aynı ikon seti
+function RankIcon({ icon, size = 12, color = 'currentColor' }) {
+    const s = { width: size, height: size, flexShrink: 0 };
+    if (icon === 'crown') return (
+        <svg {...s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M2 20h20" /><path d="m4 20 2-10 6 5 6-5 2 10" />
+        </svg>
+    );
+    if (icon === 'sparkle') return (
+        <svg {...s} viewBox="0 0 24 24" fill={color} stroke="none">
+            <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
+        </svg>
+    );
+    if (icon === 'flame') return (
+        <svg {...s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+        </svg>
+    );
+    if (icon === 'zap') return (
+        <svg {...s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+        </svg>
+    );
+    if (icon === 'waves') return (
+        <svg {...s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
+            <path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
+            <path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
+        </svg>
+    );
+    if (icon === 'bolt') return (
+        <svg {...s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" /><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+        </svg>
+    );
+    if (icon === 'book') return (
+        <svg {...s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+        </svg>
+    );
+    return null;
+}
+
+// Özel rozet ikonları (badges.js'teki icon anahtarlarına karşılık gelen SVG'ler)
+function BadgeIcon({ icon, size = 11, color = 'currentColor' }) {
+    const s = { width: size, height: size, flexShrink: 0 };
+    if (icon === 'star') return (
+        <svg {...s} viewBox="0 0 24 24" fill={color} stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z" /></svg>
+    );
+    if (icon === 'globe') return (
+        <svg {...s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
+    );
+    if (icon === 'upload') return (
+        <svg {...s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
+    );
+    if (icon === 'heart') return (
+        <svg {...s} viewBox="0 0 24 24" fill={color} stroke="none"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z" /></svg>
+    );
+    if (icon === 'trophy') return (
+        <svg {...s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 21h8" /><path d="M12 17v4" /><path d="M7 4h10v5a5 5 0 0 1-10 0V4z" /><path d="M17 5h3a2 2 0 0 1-2 4h-1" /><path d="M7 5H4a2 2 0 0 0 2 4h1" /></svg>
+    );
+    if (icon === 'check') return (
+        <svg {...s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+    );
+    return null;
+}
+
 function MiniBadges({ badges }) {
     if (!badges || badges.length === 0) return null;
     return badges.map(badgeId => {
         const opt = BADGE_OPTIONS.find(b => b.id === badgeId);
         if (!opt) return null;
+        const color = opt.color || '#9ca3af';
         return (
-            <span key={badgeId} title={opt.label} className="gchat-badge">
-                {opt.icon} {opt.label}
+            <span
+                key={badgeId}
+                title={opt.label}
+                className="gchat-badge"
+                style={{ color, borderColor: `${color}55`, background: `${color}18` }}
+            >
+                <BadgeIcon icon={opt.icon} size={11} color={color} /> {opt.label}
             </span>
         );
     });
@@ -135,19 +208,21 @@ export default function GlobalChat() {
                 {loaded && messages.length === 0 && <div className="gchat-empty">Henüz mesaj yok — ilk mesajı sen at!</div>}
                 {messages.map(m => {
                     const cult = getCultivationData(m.yomi_points);
+                    const shownName = m.display_name || m.username;
                     return (
                         <div className="gchat-row" key={m.id}>
                             <div className="gchat-avatar-wrap">
                                 {m.avatar_url && m.avatar_url !== '/default-avatar.png' ? (
-                                    <img src={m.avatar_url} alt={m.username} className="gchat-avatar-img" />
+                                    <img src={m.avatar_url} alt={shownName} className="gchat-avatar-img" />
                                 ) : (
-                                    <div className="gchat-avatar-fallback">{m.username?.[0]?.toUpperCase() || '?'}</div>
+                                    <div className="gchat-avatar-fallback">{shownName?.[0]?.toUpperCase() || '?'}</div>
                                 )}
                             </div>
                             <div className="gchat-body">
                                 <div className="gchat-meta">
-                                    <span className="gchat-username">{m.username}</span>
+                                    <span className="gchat-username" title={m.display_name ? `@${m.username}` : undefined}>{shownName}</span>
                                     <span className="gchat-rank-pill" style={{ color: cult.color, borderColor: `${cult.color}55`, background: `${cult.color}18` }}>
+                                        {cult.icon && <RankIcon icon={cult.icon} size={11} color={cult.color} />}
                                         {cult.title}
                                     </span>
                                     <MiniBadges badges={m.badges} />
@@ -246,16 +321,16 @@ export default function GlobalChat() {
                 }
                 .gchat-username { font-weight: 700; font-size: 0.9rem; }
                 .gchat-rank-pill {
+                    display: inline-flex; align-items: center; gap: 4px;
                     font-size: 0.68rem; font-weight: 700;
-                    padding: 1px 7px; border-radius: 20px;
+                    padding: 1px 8px; border-radius: 20px;
                     border: 1px solid;
                 }
                 .gchat-badge {
-                    display: inline-flex; align-items: center; gap: 2px;
-                    font-size: 0.68rem; padding: 1px 5px; border-radius: 4px;
-                    background: var(--bg-tertiary);
-                    border: 1px solid var(--border-color);
-                    font-weight: 600;
+                    display: inline-flex; align-items: center; gap: 3px;
+                    font-size: 0.68rem; padding: 1px 6px; border-radius: 20px;
+                    border: 1px solid;
+                    font-weight: 700;
                 }
                 .gchat-time { font-size: 0.72rem; color: var(--text-muted); margin-left: auto; }
                 .gchat-text {

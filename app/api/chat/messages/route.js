@@ -42,7 +42,7 @@ export async function GET(request) {
         if (Number.isFinite(after)) {
             rows = await db.prepare(`
                 SELECT m.id, m.user_id, m.message, m.created_at,
-                       u.username, u.avatar_url, u.yomi_points, u.role
+                       u.username, u.display_name, u.avatar_url, u.yomi_points, u.role
                 FROM chat_messages m
                 JOIN users u ON u.id = m.user_id
                 WHERE m.id > ?
@@ -52,7 +52,7 @@ export async function GET(request) {
         } else {
             const desc = await db.prepare(`
                 SELECT m.id, m.user_id, m.message, m.created_at,
-                       u.username, u.avatar_url, u.yomi_points, u.role
+                       u.username, u.display_name, u.avatar_url, u.yomi_points, u.role
                 FROM chat_messages m
                 JOIN users u ON u.id = m.user_id
                 ORDER BY m.id DESC
@@ -87,7 +87,7 @@ export async function POST(request) {
         // bağımsız okumalar — paralel çalıştırıp bir round-trip kazanıyoruz.
         const [user, lastMsg] = await Promise.all([
             db.prepare(`
-                SELECT id, username, avatar_url, yomi_points, role, banned_until
+                SELECT id, username, display_name, avatar_url, yomi_points, role, banned_until
                 FROM users WHERE id = ?
             `).get(payload.id),
             db.prepare('SELECT created_at FROM chat_messages WHERE user_id = ? ORDER BY id DESC LIMIT 1').get(payload.id),
@@ -115,6 +115,7 @@ export async function POST(request) {
             message,
             created_at: new Date().toISOString(),
             username: user.username,
+            display_name: user.display_name,
             avatar_url: user.avatar_url,
             yomi_points: user.yomi_points,
             role: user.role,
