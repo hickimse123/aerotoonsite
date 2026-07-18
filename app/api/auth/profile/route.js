@@ -32,10 +32,10 @@ export async function PUT(request) {
         }
         const { user: tokenUser } = result;
 
-        const { username, email, currentPassword, newPassword, avatar_url, display_name } = await request.json();
+        const { username, email, currentPassword, newPassword, avatar_url } = await request.json();
 
         const user = await db.prepare(
-            'SELECT id, username, email, password_hash, avatar_url, last_avatar_update, display_name FROM users WHERE id = ?'
+            'SELECT id, username, email, password_hash, avatar_url, last_avatar_update FROM users WHERE id = ?'
         ).get(tokenUser.id);
 
         if (!user) {
@@ -101,21 +101,8 @@ export async function PUT(request) {
             await db.prepare('UPDATE users SET avatar_url = ?, last_avatar_update = CURRENT_TIMESTAMP WHERE id = ?').run(avatar_url, user.id);
         }
 
-        // Update display name (görünen isim) — ayrı, boşsa username'e döner
-        if (display_name !== undefined && display_name !== user.display_name) {
-            const trimmed = (display_name || '').toString().trim();
-            if (trimmed === '') {
-                await db.prepare('UPDATE users SET display_name = NULL WHERE id = ?').run(user.id);
-            } else {
-                if (trimmed.length < 2 || trimmed.length > 30) {
-                    return NextResponse.json({ error: 'Görünen isim 2-30 karakter olmalı.' }, { status: 400 });
-                }
-                await db.prepare('UPDATE users SET display_name = ? WHERE id = ?').run(trimmed, user.id);
-            }
-        }
-
         const updated = await db.prepare(
-            'SELECT id, username, email, display_name, avatar_url, cover_url, role, yomi_points, last_daily_login, last_avatar_update, last_cover_update, created_at FROM users WHERE id = ?'
+            'SELECT id, username, email, avatar_url, cover_url, role, yomi_points, last_daily_login, last_avatar_update, last_cover_update, created_at FROM users WHERE id = ?'
         ).get(user.id);
         return NextResponse.json({ user: updated, message: 'Profile updated successfully' });
 

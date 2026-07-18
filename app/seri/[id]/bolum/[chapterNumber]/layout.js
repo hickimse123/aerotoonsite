@@ -85,6 +85,7 @@ export async function generateMetadata({ params }) {
         { '@type': 'ListItem', position: 3, name: `Bölüm ${chapterNumber}`, item: canonicalUrl },
       ],
     });
+
     return {
       title: pageTitle,
       description,
@@ -106,7 +107,7 @@ export async function generateMetadata({ params }) {
       robots: { index: true, follow: true },
     };
   } catch {
-    return { robots: { index: true, follow: true } };
+    return {};
   }
 }
 
