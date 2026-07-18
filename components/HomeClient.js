@@ -7,6 +7,7 @@ import SeriesCard from '@/components/SeriesCard';
 import GlassmorphismCard from '@/components/UpdateCards/GlassmorphismCard';
 import MostReadWidget from '@/components/MostReadWidget';
 import TrendingWidget from '@/components/TrendingWidget';
+import GlobalChat from '@/components/GlobalChat';
 import HeroSliderWidget from '@/components/HeroSliderWidget';
 import { useAuth } from '@/components/AuthProvider';
 
@@ -728,6 +729,11 @@ export default function HomeClient({ initialData } = {}) {
           <TrendingWidget design={appSettings.trending_design || 'trend_style1'} trending={trending} />
         </section>
       )}
+
+      {/* Genel Sohbet — trend olanlar ile son güncellenenler arasında, sadece ana sayfada */}
+      <section className="page-container page-section pt-0">
+        <GlobalChat />
+      </section>
 
       {/* MAIN LAYOUT: 2-COLUMN STRUCTURE (SCANLATION STYLE) */}
       <section className="page-container page-section pt-0 pb-40">

@@ -429,7 +429,7 @@ export default function Navbar({ siteSettings = {} }) {
                             user ? (
                                 /* Logged-in: show avatar (with photo if set) — no hamburger */
                                 <div className="user-menu" ref={userMenuRef}>
-                                    <button className="user-avatar-btn" onClick={() => setUserMenuOpen(!userMenuOpen)} aria-label="User menu" style={{ position: 'relative', overflow: 'visible' }}>
+                                    <button className="user-avatar-btn" onClick={() => setUserMenuOpen(!userMenuOpen)} aria-label="User menu" style={{ position: 'relative' }}>
                                         {user.avatar_url && user.avatar_url !== '/default-avatar.png' ? (
                                             <img
                                                 src={user.avatar_url}
@@ -439,23 +439,15 @@ export default function Navbar({ siteSettings = {} }) {
                                         ) : (
                                             <div className="avatar-circle">{user.username[0].toUpperCase()}</div>
                                         )}
-                                        {user.equipped?.frame?.image_url && (
-                                            <img src={user.equipped.frame.image_url} alt="" className="avatar-frame-overlay" style={{ position: 'absolute', inset: '-6px', width: 'calc(100% + 12px)', height: 'calc(100% + 12px)', objectFit: 'contain', pointerEvents: 'none' }} />
-                                        )}
                                     </button>
                                     {userMenuOpen && (
                                         <div className="dropdown-menu" onClick={() => setUserMenuOpen(false)}>
                                             <div className="dropdown-header">
-                                                <div className="dropdown-avatar-preview" style={{ position: 'relative' }}>
-                                                    <div className="dropdown-avatar-photo">
-                                                        {user.avatar_url && user.avatar_url !== '/default-avatar.png' ? (
-                                                            <img src={user.avatar_url} alt={user.username} />
-                                                        ) : (
-                                                            user.username[0].toUpperCase()
-                                                        )}
-                                                    </div>
-                                                    {user.equipped?.frame?.image_url && (
-                                                        <img src={user.equipped.frame.image_url} alt="" className="avatar-frame-overlay" style={{ position: 'absolute', inset: '-6px', width: 'calc(100% + 12px)', height: 'calc(100% + 12px)', pointerEvents: 'none' }} />
+                                                <div className="dropdown-avatar-preview">
+                                                    {user.avatar_url && user.avatar_url !== '/default-avatar.png' ? (
+                                                        <img src={user.avatar_url} alt={user.username} />
+                                                    ) : (
+                                                        user.username[0].toUpperCase()
                                                     )}
                                                 </div>
                                                 <div className="dropdown-header-text">
@@ -508,10 +500,6 @@ export default function Navbar({ siteSettings = {} }) {
                                                 Okuma Geçmişi
                                             </Link>
                                             <div style={{ height: 1, background: 'var(--border-color)', margin: '4px 0' }} />
-                                            <Link href="/magaza" className="dropdown-item">
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
-                                                Mağaza
-                                            </Link>
                                             <Link href="/oyunlar/aviator" className="dropdown-item">
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/></svg>
                                                 Aviator
