@@ -91,6 +91,7 @@ export async function generateMetadata({ params }) {
             alternates: {
                 canonical: canonicalUrl,
             },
+            robots: { index: true, follow: true },
             openGraph: {
                 type: 'book',
                 url: canonicalUrl,
@@ -116,6 +117,7 @@ export async function generateMetadata({ params }) {
     } catch {
         return {
             title: 'YomiTranslate — Türkçe Manga Oku',
+            robots: { index: true, follow: true },
         };
     }
 }
