@@ -764,6 +764,9 @@ export default function AdminPanelPage() {
     const [cThumbUrl, setCThumbUrl] = useState('');
     const [cThumbMode, setCThumbMode] = useState('none'); // 'none' | 'upload' | 'auto'
     const [cThumbFile, setCThumbFile] = useState(null);
+    const [cIsExternal, setCIsExternal] = useState(false); // dış bağlantılı (URL) bölüm modu
+    const [cExternalUrl, setCExternalUrl] = useState('');
+    const [cExternalNote, setCExternalNote] = useState('');
     const cFileInputRef = useRef(null);
     const cThumbFileRef = useRef(null);
 
@@ -778,6 +781,9 @@ export default function AdminPanelPage() {
     const [editChapContent, setEditChapContent] = useState('');
     const [editChapThumb, setEditChapThumb] = useState('');
     const [editChapThumbFile, setEditChapThumbFile] = useState(null);
+    const [editChapIsExternal, setEditChapIsExternal] = useState(false);
+    const [editChapExternalUrl, setEditChapExternalUrl] = useState('');
+    const [editChapExternalNote, setEditChapExternalNote] = useState('');
     const editChapThumbFileRef = useRef(null);
     const [autoThumbLoading, setAutoThumbLoading] = useState(false);
     
@@ -963,6 +969,8 @@ bug_report_enabled: '0',
         reader_support_text: 'Her bölüm yaklaşık 5 TL AI maliyetiyle hazırlanıyor. Keyif aldıysan, küçük bir desteğin yeni bölümlerin gelmesine katkı sağlar.',
         reader_support_url: '#',
         reader_support_button_text: 'Destek Ol',
+        external_redirect_message: 'Bu bölüm başka bir ekip tarafından hazırlanmıştır. Onları desteklemek için ilgili siteye yönlendiriliyorsunuz. Eğer ekibin sitesi kapandıysa, en az reklam barındıran alternatif bir kaynağa yönlendiriliyorsunuz.',
+        external_redirect_button_text: 'Siteye Git',
     });
 
     // Customization / Tema Ayarları
@@ -1709,6 +1717,8 @@ auth_subtitle_login: sData.settings.auth_subtitle_login || 'Okumaya devam etmek 
                           reader_support_text: sData.settings.reader_support_text || 'Her bölüm yaklaşık 5 TL AI maliyetiyle hazırlanıyor. Keyif aldıysan, küçük bir desteğin yeni bölümlerin gelmesine katkı sağlar.',
                           reader_support_url: sData.settings.reader_support_url || '#',
                           reader_support_button_text: sData.settings.reader_support_button_text || 'Destek Ol',
+                          external_redirect_message: sData.settings.external_redirect_message || 'Bu bölüm başka bir ekip tarafından hazırlanmıştır. Onları desteklemek için ilgili siteye yönlendiriliyorsunuz. Eğer ekibin sitesi kapandıysa, en az reklam barındıran alternatif bir kaynağa yönlendiriliyorsunuz.',
+                          external_redirect_button_text: sData.settings.external_redirect_button_text || 'Siteye Git',
                     });
                  setTurnstileSiteKey(sData.settings.turnstile_site_key || '');
                  // We never pre-fill the secret key for security
@@ -2342,6 +2352,15 @@ series_detail_design: sData.settings.series_detail_design || 'detail_style1',
     const [selectedChapters, setSelectedChapters] = useState([]);
     const [selectedSeriesIds, setSelectedSeriesIds] = useState([]);
     const [bulkSeriesCoverFile, setBulkSeriesCoverFile] = useState(null);
+
+    // Toplu dış bağlantılı (URL) bölüm ekleme
+    const [bulkExtLines, setBulkExtLines] = useState('');
+    const [bulkExtTemplate, setBulkExtTemplate] = useState('');
+    const [bulkExtStart, setBulkExtStart] = useState('');
+    const [bulkExtEnd, setBulkExtEnd] = useState('');
+    const [bulkExtNote, setBulkExtNote] = useState('');
+    const [bulkExtBusy, setBulkExtBusy] = useState(false);
+    const [bulkExtStatus, setBulkExtStatus] = useState('');
     const [showBulkSeriesActions, setShowBulkSeriesActions] = useState(false);
 
     // Büyük görselleri sunucuya tek seferde göndermek yerine küçük parçalara bölüp
@@ -2457,6 +2476,76 @@ series_detail_design: sData.settings.series_detail_design || 'detail_style1',
         }
     }
 
+    // Şablon URL ("{n}" bölüm no ile değişir) + başlangıç/bitiş no'suna göre satırları otomatik üret
+    function generateBulkExtLines() {
+        const start = parseFloat(bulkExtStart);
+        const end = parseFloat(bulkExtEnd);
+        if (!bulkExtTemplate.trim() || !bulkExtTemplate.includes('{n}')) {
+            return show('Şablon URL içinde bölüm numarası için {n} kullanın. Örn: https://kaynaksite.com/seri/bolum-{n}', 'error');
+        }
+        if (isNaN(start) || isNaN(end) || start > end) {
+            return show('Geçerli bir başlangıç/bitiş bölüm numarası girin', 'error');
+        }
+        const lines = [];
+        for (let n = start; n <= end; n++) {
+            lines.push(`${n}|${bulkExtTemplate.trim().replaceAll('{n}', n)}`);
+        }
+        setBulkExtLines(prev => (prev.trim() ? prev.trim() + '\n' : '') + lines.join('\n'));
+        show(`${lines.length} satır oluşturuldu — göndermeden önce kontrol edebilirsiniz`);
+    }
+
+    // Yapıştırılan "bölümNo|URL|başlık(opsiyonel)" satırlarını tek tek bölüm olarak ekler
+    async function handleBulkExternalSubmit() {
+        const rawLines = bulkExtLines.split('\n').map(l => l.trim()).filter(Boolean);
+        if (rawLines.length === 0) return show('Önce en az bir satır girin', 'error');
+
+        const parsed = [];
+        const badLines = [];
+        for (const line of rawLines) {
+            const parts = line.split('|').map(p => p.trim());
+            const [numStr, url, title] = parts;
+            const num = parseFloat(numStr);
+            if (!numStr || isNaN(num) || !url || !/^https?:\/\//i.test(url)) {
+                badLines.push(line);
+                continue;
+            }
+            parsed.push({ num, url, title: title || `Bölüm ${num}` });
+        }
+        if (badLines.length > 0) {
+            return show(`${badLines.length} satır hatalı biçimde (bölümNo|URL formatında olmalı, URL http(s):// ile başlamalı). Önce bunları düzeltin:\n${badLines.slice(0, 3).join('\n')}`, 'error');
+        }
+        if (!window.confirm(`${parsed.length} adet dış bağlantılı bölüm eklenecek. Devam edilsin mi?`)) return;
+
+        setBulkExtBusy(true);
+        let successCount = 0;
+        const failed = [];
+        try {
+            for (let i = 0; i < parsed.length; i++) {
+                const { num, url, title } = parsed[i];
+                setBulkExtStatus(`Bölüm ${num} ekleniyor (${i + 1}/${parsed.length})...`);
+                try {
+                    await doAction('add-chapter', {
+                        seriesId: detailSeries.id, chapterNumber: num, title,
+                        externalUrl: url, externalNote: bulkExtNote.trim() || null,
+                    });
+                    successCount++;
+                } catch (err) {
+                    failed.push(`${num}: ${err.message}`);
+                }
+            }
+            if (failed.length > 0) {
+                show(`${successCount}/${parsed.length} bölüm eklendi. Başarısız olanlar: ${failed.slice(0, 5).join(', ')}`, 'error');
+            } else {
+                show(`${successCount} dış bağlantılı bölüm eklendi`);
+            }
+            setBulkExtLines(''); setBulkExtTemplate(''); setBulkExtStart(''); setBulkExtEnd(''); setBulkExtNote('');
+            await openSeriesDetail(detailSeries.id); fetchStats();
+        } finally {
+            setBulkExtBusy(false);
+            setBulkExtStatus('');
+        }
+    }
+
     async function uploadThumbFile(file) {
         if (!file) return null;
         const fd = new FormData();
@@ -2470,6 +2559,7 @@ series_detail_design: sData.settings.series_detail_design || 'detail_style1',
 
     async function handleAddChapter() {
         if (!cNum) return show('Bölüm numarası gerekli', 'error');
+        if (cIsExternal && !cExternalUrl.trim()) return show('Dış bağlantı URL\'si gerekli', 'error');
         setSubmitting(true);
         try {
             let resolvedThumb = cThumbMode === 'auto' ? (detailSeries?.cover_url || null) : null;
@@ -2483,9 +2573,18 @@ series_detail_design: sData.settings.series_detail_design || 'detail_style1',
                     publishAtUtc = localDate.toISOString().replace('T', ' ').slice(0, 19);
                 }
             }
-            const r1 = await doAction('add-chapter', { seriesId: detailSeries.id, chapterNumber: cNum, title: cTitle || `Bölüm ${cNum}`, content: cContent, publishAt: publishAtUtc, thumbnailUrl: resolvedThumb });
+            const r1 = await doAction('add-chapter', {
+                seriesId: detailSeries.id, chapterNumber: cNum, title: cTitle || `Bölüm ${cNum}`,
+                content: cIsExternal ? null : cContent, publishAt: publishAtUtc, thumbnailUrl: resolvedThumb,
+                externalUrl: cIsExternal ? cExternalUrl.trim() : null,
+                externalNote: cIsExternal ? (cExternalNote.trim() || null) : null,
+            });
             const newChapId = r1.chapterId;
 
+            // Dış bağlantılı bölümlerde sayfa yüklenmez
+            if (cIsExternal) {
+                show('Dış bağlantılı bölüm eklendi');
+            } else
             // Upload images if any were selected
             if (cFiles && cFiles.length > 0 && newChapId && detailSeries?.type !== 'novel') {
                 const filesArr = Array.from(cFiles);
@@ -2513,6 +2612,7 @@ series_detail_design: sData.settings.series_detail_design || 'detail_style1',
             }
 
             setCNum(''); setCTitle(''); setCFiles(null); setCContent(''); setCPublishAt(''); setCThumbUrl(''); setCThumbMode('none'); setCThumbFile(null);
+            setCIsExternal(false); setCExternalUrl(''); setCExternalNote('');
             if (cFileInputRef.current) cFileInputRef.current.value = '';
             if (cThumbFileRef.current) cThumbFileRef.current.value = '';
             await openSeriesDetail(detailSeries.id); fetchStats();
@@ -2522,12 +2622,18 @@ series_detail_design: sData.settings.series_detail_design || 'detail_style1',
 
     async function handleUpdateChapter() {
         if (!editChapNum) return show('Bölüm numarası gerekli', 'error');
+        if (editChapIsExternal && !editChapExternalUrl.trim()) return show('Dış bağlantı URL\'si gerekli', 'error');
         setSubmitting(true);
         try {
             let resolvedEditThumb = editChapThumbMode === 'auto' ? (detailSeries?.cover_url || null) : editChapThumbMode === 'none' ? null : editChapThumb.trim() || null;
             if (editChapThumbMode === 'upload' && editChapThumbFile) resolvedEditThumb = await uploadThumbFile(editChapThumbFile);
-            await doAction('update-chapter', { chapterId: editingChapterId, chapterNumber: editChapNum, title: editChapTitle, content: editChapContent, thumbnailUrl: resolvedEditThumb });
+            await doAction('update-chapter', {
+                chapterId: editingChapterId, chapterNumber: editChapNum, title: editChapTitle, content: editChapContent, thumbnailUrl: resolvedEditThumb,
+                externalUrl: editChapIsExternal ? editChapExternalUrl.trim() : '',
+                externalNote: editChapIsExternal ? (editChapExternalNote.trim() || '') : '',
+            });
             show('Bölüm güncellendi'); setEditingChapterId(null); setEditChapNum(''); setEditChapTitle(''); setEditChapContent(''); setEditChapThumb(''); setEditChapThumbMode('none'); setEditChapThumbFile(null);
+            setEditChapIsExternal(false); setEditChapExternalUrl(''); setEditChapExternalNote('');
             await openSeriesDetail(detailSeries.id); fetchStats();
         } catch (e) { show(e.message, 'error'); }
         finally { setSubmitting(false); }
@@ -3236,6 +3342,11 @@ series_detail_design: sData.settings.series_detail_design || 'detail_style1',
                                 <h4 style={{ margin: '0 0 10px 0', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 6 }}>
                                     <PlusIcon /> Tekli Bölüm Ekle
                                 </h4>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', cursor: 'pointer', color: '#38bdf8', fontWeight: 600, marginBottom: 10, padding: '8px 10px', background: 'rgba(56,189,248,0.06)', borderRadius: 6, border: '1px solid rgba(56,189,248,0.2)', width: 'fit-content' }}>
+                                    <input type="checkbox" checked={cIsExternal} onChange={e => setCIsExternal(e.target.checked)} style={{ width: 14, height: 14, cursor: 'pointer' }} />
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>
+                                    Dış Bağlantılı Bölüm (sayfa yüklemeden, başka bir siteye yönlendir)
+                                </label>
                                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
                                     <div className="form-group" style={{ margin: 0, flex: '0 0 90px' }}>
                                         <label style={{ fontSize: '0.72rem' }}>Bölüm No</label>
@@ -3245,7 +3356,28 @@ series_detail_design: sData.settings.series_detail_design || 'detail_style1',
                                         <label style={{ fontSize: '0.72rem' }}>Başlık (isteğe bağlı)</label>
                                         <input className="form-input" value={cTitle} onChange={e => setCTitle(e.target.value)} placeholder="Bölüm başlığı" />
                                     </div>
-                                    {detailSeries?.type === 'novel' ? (
+                                    {cIsExternal ? (
+                                        <div className="form-group" style={{ margin: 0, flex: '1 1 100%' }}>
+                                            <label style={{ fontSize: '0.72rem' }}>Kaynak Bölüm URL'si *</label>
+                                            <input
+                                                type="url"
+                                                className="form-input"
+                                                value={cExternalUrl}
+                                                onChange={e => setCExternalUrl(e.target.value)}
+                                                placeholder="https://kaynak-site.com/seri/bolum-44"
+                                                style={{ fontSize: '0.8rem' }}
+                                            />
+                                            <label style={{ fontSize: '0.72rem', marginTop: 6, display: 'block' }}>Bu bölüme özel uyarı metni (isteğe bağlı)</label>
+                                            <textarea
+                                                className="form-input"
+                                                rows="2"
+                                                value={cExternalNote}
+                                                onChange={e => setCExternalNote(e.target.value)}
+                                                placeholder="Boş bırakılırsa Ayarlar sayfasındaki varsayılan uyarı metni kullanılır"
+                                                style={{ fontSize: '0.78rem', resize: 'vertical' }}
+                                            />
+                                        </div>
+                                    ) : detailSeries?.type === 'novel' ? (
                                         <div className="form-group" style={{ margin: 0, flex: '1 1 100%' }}>
                                             <label style={{ fontSize: '0.72rem' }}>Bölüm Metni</label>
                                             <FormatToolbar stateSetter={setCContent} stateValue={cContent} textareaId="add-novel-content" />
@@ -3355,6 +3487,80 @@ series_detail_design: sData.settings.series_detail_design || 'detail_style1',
                                     </button>
                                     {bulkStatus && <span style={{ fontSize: '0.75rem', color: 'var(--accent-light)' }}>{bulkStatus}</span>}
                                 </form>
+                            </div>
+
+                            {/* Bulk External URL Chapters Section */}
+                            <div style={{ padding: 12, background: 'rgba(56,189,248,0.06)', borderRadius: 8, marginBottom: 16, border: '1px dashed rgba(56,189,248,0.35)' }}>
+                                <h4 style={{ margin: '0 0 8px 0', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 6, color: '#38bdf8' }}>
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>
+                                    Toplu Dış Bağlantılı Bölüm Ekle
+                                </h4>
+                                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 10 }}>
+                                    Başka bir ekip tarafından yapılmış çok sayıda bölümü, sayfa yüklemeden sadece kaynak URL olarak ekleyin. Aşağıya her satıra bir bölüm gelecek şekilde <code>bölümNo|URL|başlık(opsiyonel)</code> formatında yapıştırın, ya da altındaki şablonla otomatik oluşturun.
+                                </p>
+
+                                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10, padding: 10, background: 'var(--bg-secondary)', borderRadius: 6 }}>
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        value={bulkExtTemplate}
+                                        onChange={e => setBulkExtTemplate(e.target.value)}
+                                        placeholder="https://kaynaksite.com/seri/bolum-{n}"
+                                        style={{ flex: '1 1 260px', fontSize: '0.78rem' }}
+                                    />
+                                    <input
+                                        type="number"
+                                        step="0.1"
+                                        className="form-input"
+                                        value={bulkExtStart}
+                                        onChange={e => setBulkExtStart(e.target.value)}
+                                        placeholder="Baş. no"
+                                        style={{ width: 90, fontSize: '0.78rem' }}
+                                    />
+                                    <span style={{ color: 'var(--text-muted)' }}>—</span>
+                                    <input
+                                        type="number"
+                                        step="0.1"
+                                        className="form-input"
+                                        value={bulkExtEnd}
+                                        onChange={e => setBulkExtEnd(e.target.value)}
+                                        placeholder="Bit. no"
+                                        style={{ width: 90, fontSize: '0.78rem' }}
+                                    />
+                                    <button type="button" className="btn btn-ghost btn-sm" onClick={generateBulkExtLines}>
+                                        Satırları Oluştur
+                                    </button>
+                                </div>
+
+                                <textarea
+                                    className="form-input"
+                                    rows="6"
+                                    value={bulkExtLines}
+                                    onChange={e => setBulkExtLines(e.target.value)}
+                                    placeholder={"1|https://kaynaksite.com/seri/bolum-1\n2|https://kaynaksite.com/seri/bolum-2|Özel Başlık\n3|https://kaynaksite.com/seri/bolum-3"}
+                                    style={{ fontSize: '0.78rem', fontFamily: 'monospace', resize: 'vertical', marginBottom: 8 }}
+                                />
+
+                                <textarea
+                                    className="form-input"
+                                    rows="2"
+                                    value={bulkExtNote}
+                                    onChange={e => setBulkExtNote(e.target.value)}
+                                    placeholder="Bu toplu ekleme için ortak uyarı metni (isteğe bağlı — boş bırakılırsa Ayarlar'daki varsayılan metin kullanılır)"
+                                    style={{ fontSize: '0.78rem', resize: 'vertical', marginBottom: 10 }}
+                                />
+
+                                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                                    <button
+                                        type="button"
+                                        className="btn btn-primary btn-sm"
+                                        disabled={bulkExtBusy || !bulkExtLines.trim()}
+                                        onClick={handleBulkExternalSubmit}
+                                    >
+                                        {bulkExtBusy ? 'Ekleniyor...' : `Bölümleri Ekle (${bulkExtLines.split('\n').filter(l => l.trim()).length})`}
+                                    </button>
+                                    {bulkExtStatus && <span style={{ fontSize: '0.75rem', color: '#38bdf8' }}>{bulkExtStatus}</span>}
+                                </div>
                             </div>
 
                             {/* ── Auto Import (Scraper) Section ── */}
@@ -3595,6 +3801,32 @@ series_detail_design: sData.settings.series_detail_design || 'detail_style1',
                                                             {editChapThumbMode === 'auto' && <small style={{ color: '#10b981', fontSize: '0.68rem' }}>✓ Seri kapağı kullanılacak</small>}
                                                             {editChapThumbMode === 'none' && editChapThumb && <small style={{ color: '#f87171', fontSize: '0.68rem' }}>Mevcut thumbnail silinecek</small>}
                                                         </div>
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '8px', background: 'rgba(56,189,248,0.06)', borderRadius: 6, border: '1px solid rgba(56,189,248,0.2)' }}>
+                                                            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', cursor: 'pointer', color: '#38bdf8', fontWeight: 600 }}>
+                                                                <input type="checkbox" checked={editChapIsExternal} onChange={e => setEditChapIsExternal(e.target.checked)} style={{ width: 14, height: 14, cursor: 'pointer' }} />
+                                                                Dış Bağlantılı Bölüm (başka bir ekibin sitesine yönlendir)
+                                                            </label>
+                                                            {editChapIsExternal && (
+                                                                <>
+                                                                    <input
+                                                                        type="url"
+                                                                        value={editChapExternalUrl}
+                                                                        onChange={e => setEditChapExternalUrl(e.target.value)}
+                                                                        className="form-input"
+                                                                        placeholder="https://kaynak-site.com/seri/bolum-44"
+                                                                        style={{ padding: '4px 8px', fontSize: '0.8rem' }}
+                                                                    />
+                                                                    <textarea
+                                                                        value={editChapExternalNote}
+                                                                        onChange={e => setEditChapExternalNote(e.target.value)}
+                                                                        className="form-input"
+                                                                        rows="2"
+                                                                        placeholder="Bu bölüme özel uyarı metni (boş bırakılırsa Ayarlar'daki varsayılan metin kullanılır)"
+                                                                        style={{ padding: '6px 8px', fontSize: '0.78rem', resize: 'vertical' }}
+                                                                    />
+                                                                </>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 ) : (
                                                     <>
@@ -3608,7 +3840,14 @@ series_detail_design: sData.settings.series_detail_design || 'detail_style1',
                                                 )}
                                             </div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                                                <span className="admin-badge user-role">{ch.page_count || 0} sayfa</span>
+                                                {ch.external_url ? (
+                                                    <span className="admin-badge" title={ch.external_url} style={{ background: 'rgba(56,189,248,0.15)', color: '#38bdf8', border: '1px solid rgba(56,189,248,0.3)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>
+                                                        Dış Bağlantı
+                                                    </span>
+                                                ) : (
+                                                    <span className="admin-badge user-role">{ch.page_count || 0} sayfa</span>
+                                                )}
                                                 {ch.translation_count > 0 && <span className="admin-badge admin-role">{ch.translation_count} dil</span>}
                                                 {ch.publish_at && (() => { const ps = String(ch.publish_at).trim(); const pd = new Date(ps.includes('T') ? ps : ps.replace(' ', 'T') + 'Z'); return !isNaN(pd.getTime()) && pd > new Date(); })() && (
                                                     <button
@@ -3650,6 +3889,9 @@ series_detail_design: sData.settings.series_detail_design || 'detail_style1',
                                                             setEditChapContent(ch.content || '');
                                                             setEditChapThumb(ch.thumbnail_url || '');
                                                             setEditChapThumbMode(ch.thumbnail_url ? 'manual' : 'none');
+                                                            setEditChapIsExternal(!!ch.external_url);
+                                                            setEditChapExternalUrl(ch.external_url || '');
+                                                            setEditChapExternalNote(ch.external_note || '');
                                                         }} title="Bölümü düzenle">
                                                             <EditIcon />
                                                         </button>
@@ -6545,6 +6787,40 @@ series_detail_design: sData.settings.series_detail_design || 'detail_style1',
                                             Bağış sayfanızın URL'si. # yazarsanız buton sayfada kalır.
                                         </small>
                                     </div>
+                                </div>
+                            </div>
+
+                            <div className="admin-card" style={{ marginTop: 20 }}>
+                                <h4 style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>
+                                    Dış Bağlantılı Bölüm Uyarısı
+                                </h4>
+                                <small style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginBottom: 14, display: 'block' }}>
+                                    Başka bir ekip tarafından yapılmış, sadece URL olarak eklediğiniz bölümlere kullanıcı girdiğinde gösterilen tam ekran uyarı. Bir bölüme özel metin girilmediyse buradaki varsayılan metin kullanılır.
+                                </small>
+
+                                <div className="form-group">
+                                    <label>Varsayılan Uyarı Metni</label>
+                                    <textarea
+                                        className="form-input"
+                                        rows={3}
+                                        value={settings.external_redirect_message}
+                                        onChange={(e) => setSettings({...settings, external_redirect_message: e.target.value})}
+                                        placeholder="Bu seri başka bir ekip tarafından yapılmıştır..."
+                                        style={{ resize: 'vertical', minHeight: 72 }}
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label>Buton Metni</label>
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        value={settings.external_redirect_button_text}
+                                        onChange={(e) => setSettings({...settings, external_redirect_button_text: e.target.value})}
+                                        placeholder="Siteye Git"
+                                        style={{ maxWidth: 260 }}
+                                    />
                                 </div>
                             </div>
 

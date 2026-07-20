@@ -472,6 +472,42 @@ export function ReaderContent({ chapterId: propChapterId } = {}) {
     const seriesSlug = series.slug || series.id;
     const showEndCard = isMangaMode && currentPageIndex >= (pages?.length || 0);
 
+    // Dış bağlantılı bölüm: sayfa içeriği yok, kaynağa yönlendirme uyarısı göster
+    if (chapter.external_url) {
+        const redirectMessage = chapter.external_note
+            || appSettings.external_redirect_message
+            || 'Bu bölüm başka bir ekip tarafından hazırlanmıştır. Onları desteklemek için ilgili siteye yönlendiriliyorsunuz. Eğer ekibin sitesi kapandıysa, en az reklam barındıran alternatif bir kaynağa yönlendiriliyorsunuz.';
+        const redirectButtonText = appSettings.external_redirect_button_text || 'Siteye Git';
+        return (
+            <div className="page-container fade-in" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
+                <div style={{ textAlign: 'center', maxWidth: 460, background: 'var(--bg-secondary)', padding: '40px 30px', borderRadius: 16, border: '1px solid var(--border-color)' }}>
+                    <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'center' }}>
+                        <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(56,189,248,0.12)', border: '2px solid rgba(56,189,248,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/>
+                                <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: 12, color: 'var(--text-primary)' }}>Bu Bölüm Başka Bir Kaynakta</h2>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginBottom: 28, lineHeight: 1.65, whiteSpace: 'pre-line' }}>{redirectMessage}</p>
+                    <div style={{ display: 'flex', gap: 12, flexDirection: 'column' }}>
+                        <a
+                            href={chapter.external_url}
+                            target="_blank"
+                            rel="noopener noreferrer nofollow"
+                            style={{ padding: '12px', borderRadius: 8, background: '#38bdf8', color: '#0c1220', fontWeight: 800, textDecoration: 'none', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                        >
+                            {redirectButtonText}
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>
+                        </a>
+                        <Link href={`/series/${seriesSlug}`} style={{ padding: '12px', borderRadius: 8, background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontWeight: 600, textDecoration: 'none' }}>Geri Dön</Link>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     // Adult content check
     if (isAdult && !user) {
         return (

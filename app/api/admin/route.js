@@ -227,6 +227,18 @@ export async function POST(request) {
             // publishAt: boş string → NULL (zamanlama iptal), değer → set, undefined → değiştirme
             const publishAtRaw = formData.get('publishAt');
             const publishAt = publishAtRaw === '' ? null : (publishAtRaw || undefined);
+            // externalUrl: boş string → NULL (dış bağlantı kaldır), değer → set, undefined → değiştirme
+            const externalUrlRaw = formData.get('externalUrl');
+            const externalUrl = externalUrlRaw === '' ? null : (externalUrlRaw || undefined);
+            const externalNoteRaw = formData.get('externalNote');
+            const externalNote = externalNoteRaw === '' ? null : (externalNoteRaw || undefined);
+
+            if (externalUrl !== undefined) {
+                await db.prepare('UPDATE chapters SET external_url = ? WHERE id = ?').run(externalUrl, chapterId);
+            }
+            if (externalNote !== undefined) {
+                await db.prepare('UPDATE chapters SET external_note = ? WHERE id = ?').run(externalNote, chapterId);
+            }
 
             if (thumbnailUrl !== null && thumbnailUrl !== undefined && thumbnailUrl !== '') {
                 if (publishAt !== undefined) {
@@ -310,10 +322,12 @@ export async function POST(request) {
             const content = formData.get('content') || null;
             const publishAt = formData.get('publishAt') || null;
             const thumbnailUrl = formData.get('thumbnailUrl') || null;
+            const externalUrl = formData.get('externalUrl') || null;
+            const externalNote = formData.get('externalNote') || null;
 
             const result = await db.prepare(
-                'INSERT INTO chapters (series_id, chapter_number, title, content, publish_at, thumbnail_url) VALUES (?, ?, ?, ?, ?, ?)'
-            ).run(seriesId, chapterNumber, title, content, publishAt, thumbnailUrl);
+                'INSERT INTO chapters (series_id, chapter_number, title, content, publish_at, thumbnail_url, external_url, external_note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+            ).run(seriesId, chapterNumber, title, content, publishAt, thumbnailUrl, externalUrl, externalNote);
 
             const chapterId = result.lastInsertRowid;
 
