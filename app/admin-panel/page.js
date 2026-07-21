@@ -935,6 +935,7 @@ const [viewPagesChapterId, setViewPagesChapterId] = useState(null);
     // Turnstile
     const [turnstileSiteKey, setTurnstileSiteKey] = useState('');
     const [turnstileSecretKey, setTurnstileSecretKey] = useState('');
+    const [tenorApiKey, setTenorApiKey] = useState('');
     const [turnstileLoaded, setTurnstileLoaded] = useState(false);
 
     // Global Settings (Donations + Maintenance + Discord + Bug Reports)
@@ -971,6 +972,7 @@ bug_report_enabled: '0',
         reader_support_button_text: 'Destek Ol',
         external_redirect_message: 'Bu bölüm başka bir ekip tarafından hazırlanmıştır. Onları desteklemek için ilgili siteye yönlendiriliyorsunuz. Eğer ekibin sitesi kapandıysa, en az reklam barındıran alternatif bir kaynağa yönlendiriliyorsunuz.',
         external_redirect_button_text: 'Siteye Git',
+        chat_gif_enabled: '1',
     });
 
     // Customization / Tema Ayarları
@@ -1719,6 +1721,7 @@ auth_subtitle_login: sData.settings.auth_subtitle_login || 'Okumaya devam etmek 
                           reader_support_button_text: sData.settings.reader_support_button_text || 'Destek Ol',
                           external_redirect_message: sData.settings.external_redirect_message || 'Bu bölüm başka bir ekip tarafından hazırlanmıştır. Onları desteklemek için ilgili siteye yönlendiriliyorsunuz. Eğer ekibin sitesi kapandıysa, en az reklam barındıran alternatif bir kaynağa yönlendiriliyorsunuz.',
                           external_redirect_button_text: sData.settings.external_redirect_button_text || 'Siteye Git',
+                          chat_gif_enabled: sData.settings.chat_gif_enabled ?? '1',
                     });
                  setTurnstileSiteKey(sData.settings.turnstile_site_key || '');
                  // We never pre-fill the secret key for security
@@ -6822,6 +6825,64 @@ series_detail_design: sData.settings.series_detail_design || 'detail_style1',
                                         style={{ maxWidth: 260 }}
                                     />
                                 </div>
+                            </div>
+
+                            <div className="admin-card" style={{ marginTop: 20 }}>
+                                <h4 style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                                    Sohbet — GIF Gönderme
+                                </h4>
+                                <small style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginBottom: 14, display: 'block' }}>
+                                    Genel sohbette kullanıcıların GIF arayıp gönderebilmesi için ücretsiz bir{' '}
+                                    <a href="https://tenor.com/gifapi/documentation#quickstart-apikey" target="_blank" rel="noopener" style={{ color: 'var(--accent-light)' }}>Tenor API anahtarı</a>
+                                    {' '}girin. Anahtar girilmezse kullanıcılar yine de GIF bağlantısı yapıştırarak gönderebilir, sadece arama kutusu gizli kalır.
+                                </small>
+
+                                <form onSubmit={async (e) => {
+                                    e.preventDefault();
+                                    try {
+                                        const res = await authFetch('/api/admin/settings', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                                chat_gif_enabled: settings.chat_gif_enabled,
+                                                ...(tenorApiKey ? { tenor_api_key: tenorApiKey } : {}),
+                                            }),
+                                        });
+                                        const d = await res.json();
+                                        if (!d.success) throw new Error(d.error || 'Failed');
+                                        show('Sohbet GIF ayarları kaydedildi!');
+                                        setTenorApiKey('');
+                                        fetchStats();
+                                    } catch (e) { show(e.message, 'error'); }
+                                }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', cursor: 'pointer', marginBottom: 14 }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={settings.chat_gif_enabled === '1'}
+                                            onChange={(e) => setSettings({...settings, chat_gif_enabled: e.target.checked ? '1' : '0'})}
+                                            style={{ width: 16, height: 16, cursor: 'pointer' }}
+                                        />
+                                        Sohbette GIF gönderme özelliğini etkinleştir
+                                    </label>
+
+                                    <div className="form-group">
+                                        <label>Tenor API Anahtarı</label>
+                                        <input
+                                            type="password"
+                                            className="form-input"
+                                            placeholder="Mevcut anahtarı korumak için boş bırakın"
+                                            value={tenorApiKey}
+                                            onChange={e => setTenorApiKey(e.target.value)}
+                                        />
+                                        <small style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>Anahtar sadece yazılabilir niteliktedir ve bir daha gösterilmez.</small>
+                                    </div>
+
+                                    <button type="submit" className="btn btn-primary">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                                        GIF Ayarlarını Kaydet
+                                    </button>
+                                </form>
                             </div>
 
                             {/* ── Yeni Bölüm Özelleştirmesi ── */}

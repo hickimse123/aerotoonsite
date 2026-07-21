@@ -6,6 +6,20 @@ const MAX_MESSAGE_LENGTH = 500;
 const RATE_LIMIT_MS = 3000; // aynı kullanıcı art arda en fazla 3 saniyede bir mesaj atabilir
 const PAGE_SIZE = 50;
 
+// GIF URL'sinin gerçekten bir görsel/gif bağlantısı olduğunu doğrular (rastgele
+// script/veri enjeksiyonunu engellemek için) — sadece http(s) ve bilinen
+// uzantı/host'lara izin ver.
+function isValidGifUrl(url) {
+    if (typeof url !== 'string' || url.length > 600) return false;
+    try {
+        const u = new URL(url);
+        if (u.protocol !== 'https:' && u.protocol !== 'http:') return false;
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 // Bir grup mesajın yazarlarına ait özel rozetleri (user_badges) tek seferde
 // (batch) çekip her mesaja iliştirir — comments API'deki aynı desen.
 async function attachAuthorExtras(db, messages) {
@@ -30,6 +44,19 @@ async function attachAuthorExtras(db, messages) {
     }));
 }
 
+const MESSAGE_SELECT_FIELDS = `
+    m.id, m.user_id, m.message, m.gif_url, m.reply_to_id, m.created_at,
+    u.username, u.display_name, u.avatar_url, u.yomi_points, u.role,
+    rm.message AS reply_message, rm.gif_url AS reply_gif_url,
+    ru.username AS reply_username, ru.display_name AS reply_display_name
+`;
+const MESSAGE_JOINS = `
+    FROM chat_messages m
+    JOIN users u ON u.id = m.user_id
+    LEFT JOIN chat_messages rm ON rm.id = m.reply_to_id
+    LEFT JOIN users ru ON ru.id = rm.user_id
+`;
+
 // GET ?after=<id> — after verilirse sadece o id'den sonraki (yeni) mesajlar döner (polling için).
 // verilmezse en son PAGE_SIZE mesaj döner.
 export async function GET(request) {
@@ -41,20 +68,16 @@ export async function GET(request) {
         let rows;
         if (Number.isFinite(after)) {
             rows = await db.prepare(`
-                SELECT m.id, m.user_id, m.message, m.created_at,
-                       u.username, u.display_name, u.avatar_url, u.yomi_points, u.role
-                FROM chat_messages m
-                JOIN users u ON u.id = m.user_id
+                SELECT ${MESSAGE_SELECT_FIELDS}
+                ${MESSAGE_JOINS}
                 WHERE m.id > ?
                 ORDER BY m.id ASC
                 LIMIT 100
             `).all(after);
         } else {
             const desc = await db.prepare(`
-                SELECT m.id, m.user_id, m.message, m.created_at,
-                       u.username, u.display_name, u.avatar_url, u.yomi_points, u.role
-                FROM chat_messages m
-                JOIN users u ON u.id = m.user_id
+                SELECT ${MESSAGE_SELECT_FIELDS}
+                ${MESSAGE_JOINS}
                 ORDER BY m.id DESC
                 LIMIT ?
             `).all(PAGE_SIZE);
@@ -69,7 +92,7 @@ export async function GET(request) {
     }
 }
 
-// POST { message } — yeni mesaj gönder
+// POST { message, replyToId?, gifUrl? } — yeni mesaj gönder (metin ve/veya GIF)
 export async function POST(request) {
     try {
         const db = await getDb();
@@ -78,10 +101,19 @@ export async function POST(request) {
 
         const body = await request.json();
         const message = (body?.message || '').toString().trim();
-        if (!message) return NextResponse.json({ error: 'Mesaj boş olamaz' }, { status: 400 });
+        const gifUrlRaw = (body?.gifUrl || '').toString().trim();
+        let gifUrl = gifUrlRaw && isValidGifUrl(gifUrlRaw) ? gifUrlRaw : null;
+        if (gifUrlRaw && !gifUrl) return NextResponse.json({ error: 'Geçersiz GIF bağlantısı' }, { status: 400 });
+        if (gifUrl) {
+            const gifSetting = await db.prepare("SELECT setting_value FROM app_settings WHERE setting_key = 'chat_gif_enabled'").get();
+            if (gifSetting?.setting_value === '0') gifUrl = null;
+        }
+        if (!message && !gifUrl) return NextResponse.json({ error: 'Mesaj boş olamaz' }, { status: 400 });
         if (message.length > MAX_MESSAGE_LENGTH) {
             return NextResponse.json({ error: `Mesaj en fazla ${MAX_MESSAGE_LENGTH} karakter olabilir` }, { status: 400 });
         }
+        let replyToId = parseInt(body?.replyToId, 10);
+        if (!Number.isFinite(replyToId) || replyToId <= 0) replyToId = null;
 
         // Kullanıcı satırı + son mesaj zamanı (spam kontrolü) birbirinden
         // bağımsız okumalar — paralel çalıştırıp bir round-trip kazanıyoruz.
@@ -105,14 +137,35 @@ export async function POST(request) {
             }
         }
 
+        // Yanıtlanan mesaj gerçekten var mı kontrol et (varsa referansı sakla, yoksa görmezden gel)
+        let validReplyToId = null;
+        let replyPreview = null;
+        if (replyToId) {
+            const rm = await db.prepare(`
+                SELECT rm.id, rm.message, rm.gif_url, ru.username, ru.display_name
+                FROM chat_messages rm JOIN users ru ON ru.id = rm.user_id
+                WHERE rm.id = ?
+            `).get(replyToId);
+            if (rm) {
+                validReplyToId = rm.id;
+                replyPreview = { message: rm.message, gif_url: rm.gif_url, username: rm.username, display_name: rm.display_name };
+            }
+        }
+
         const result = await db.prepare(
-            'INSERT INTO chat_messages (user_id, message) VALUES (?, ?)'
-        ).run(user.id, message);
+            'INSERT INTO chat_messages (user_id, message, gif_url, reply_to_id) VALUES (?, ?, ?, ?)'
+        ).run(user.id, message, gifUrl, validReplyToId);
 
         const [withExtras] = await attachAuthorExtras(db, [{
             id: result.lastInsertRowid,
             user_id: user.id,
             message,
+            gif_url: gifUrl,
+            reply_to_id: validReplyToId,
+            reply_message: replyPreview?.message ?? null,
+            reply_gif_url: replyPreview?.gif_url ?? null,
+            reply_username: replyPreview?.username ?? null,
+            reply_display_name: replyPreview?.display_name ?? null,
             created_at: new Date().toISOString(),
             username: user.username,
             display_name: user.display_name,

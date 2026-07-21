@@ -19,8 +19,10 @@ export async function GET(request) {
 
         const db = await getDb();
         const rows = await db.prepare('SELECT setting_key, setting_value FROM app_settings').all();
+        // Bazı ayarlar hassas (API anahtarı gibi) — istemciye asla gönderilmemeli.
+        const SENSITIVE_KEYS = new Set(['tenor_api_key']);
         const settings = {};
-        rows.forEach(r => { settings[r.setting_key] = r.setting_value });
+        rows.forEach(r => { if (!SENSITIVE_KEYS.has(r.setting_key)) settings[r.setting_key] = r.setting_value });
         return NextResponse.json({ success: true, settings }, {
             headers: {
                 // 30 saniyelik client cache — admin kaydettiğinde zaten sayfayı yeniler
