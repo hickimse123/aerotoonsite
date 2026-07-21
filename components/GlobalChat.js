@@ -152,6 +152,10 @@ function EmojiPicker({ onPick, onClose }) {
 
     return (
         <div className="gchat-popover gchat-emoji-pop" ref={ref}>
+            <div className="gchat-pop-header">
+                <span className="gchat-pop-header-title">😊 Emoji</span>
+                <button type="button" className="gchat-pop-close" aria-label="Kapat" onClick={onClose}>✕</button>
+            </div>
             <div className="gchat-emoji-search-wrap">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="gchat-emoji-search-icon"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
                 <input
@@ -232,6 +236,10 @@ function GifPicker({ authFetch, onPick, onClose }) {
 
     return (
         <div className="gchat-popover gchat-gif-pop" ref={ref}>
+            <div className="gchat-pop-header">
+                <span className="gchat-pop-header-title">🎬 GIF</span>
+                <button type="button" className="gchat-pop-close" aria-label="Kapat" onClick={onClose}>✕</button>
+            </div>
             <div className="gchat-gif-tabs">
                 <button type="button" className={`gchat-gif-tab ${tab === 'search' ? 'is-active' : ''}`} onClick={() => setTab('search')}>Ara</button>
                 <button type="button" className={`gchat-gif-tab ${tab === 'paste' ? 'is-active' : ''}`} onClick={() => setTab('paste')}>Bağlantı Yapıştır</button>
@@ -514,7 +522,6 @@ export default function GlobalChat() {
                                 onClick={() => { setShowEmoji(v => !v); setShowGif(false); }}
                             >
                                 🙂
-                                {showEmoji && <EmojiPicker onPick={insertEmoji} onClose={() => setShowEmoji(false)} />}
                             </button>
                             {gifEnabled && (
                                 <button
@@ -524,9 +531,10 @@ export default function GlobalChat() {
                                     onClick={() => { setShowGif(v => !v); setShowEmoji(false); }}
                                 >
                                     GIF
-                                    {showGif && <GifPicker authFetch={authFetch} onPick={handleGifPick} onClose={() => setShowGif(false)} />}
                                 </button>
                             )}
+                            {showEmoji && <EmojiPicker onPick={insertEmoji} onClose={() => setShowEmoji(false)} />}
+                            {showGif && <GifPicker authFetch={authFetch} onPick={handleGifPick} onClose={() => setShowGif(false)} />}
                         </div>
                         <input
                             ref={inputRef}
@@ -686,14 +694,29 @@ export default function GlobalChat() {
                 .gchat-tool-btn:hover { background: var(--bg-card); }
                 .gchat-tool-gif { font-size: 0.62rem; font-weight: 800; letter-spacing: 0.02em; }
                 .gchat-popover {
-                    position: absolute; bottom: 42px; left: 0;
+                    position: absolute; bottom: 46px; left: 0;
                     background: var(--bg-secondary);
                     border: 1px solid var(--border-color);
-                    border-radius: 10px;
-                    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
-                    z-index: 20;
+                    border-radius: 14px;
+                    box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+                    z-index: 50;
                     padding: 10px;
+                    max-width: calc(100vw - 40px);
                 }
+                .gchat-pop-header {
+                    display: flex; align-items: center; justify-content: space-between;
+                    padding: 0 2px 8px;
+                    margin-bottom: 8px;
+                    border-bottom: 1px solid rgba(255,255,255,0.06);
+                }
+                .gchat-pop-header-title {
+                    font-size: 0.82rem; font-weight: 700; color: var(--text-primary);
+                }
+                .gchat-pop-close {
+                    background: none; border: none; cursor: pointer;
+                    color: var(--text-muted); font-size: 0.75rem; padding: 2px 4px; line-height: 1;
+                }
+                .gchat-pop-close:hover { color: var(--text-primary); }
                 .gchat-emoji-pop { width: 300px; padding: 12px; }
                 .gchat-emoji-search-wrap {
                     position: relative;
