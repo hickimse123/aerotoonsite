@@ -8,11 +8,56 @@ const POLL_MS = 3000;
 const MAX_LEN = 500;
 
 // Sohbette hızlı erişim için küçük, elle seçilmiş emoji seti (harici kütüphane yok)
-const EMOJI_LIST = [
-    '😀','😁','😂','🤣','😊','😍','😘','😜','🤔','🙄','😴','😭','😢','😱','😡','🥵','🥶','🤯','😎','🥳',
-    '🤩','😇','🙃','😏','😳','🤗','🫡','🙌','👏','👍','👎','🤝','🙏','💪','✌️','🤞','👌','🔥','✨','💯',
-    '⭐','❤️','🧡','💛','💚','💙','💜','🖤','🤍','💔','💕','😻','😹','🐱','🐶','🐵','🦊','🐼','🐸','🎉',
-    '🎊','🎈','🚀','✈️','🌙','☀️','⚡','🌈','☕','🍕','🍔','🍿','🎮','🏆','💀','👻','🤖','👀','😤','🫠',
+// Kategorilere ayrılmış + her emoji için arama yapılabilecek anahtar kelimeler
+const EMOJI_CATEGORIES = [
+    {
+        id: 'ifadeler',
+        label: 'İfadeler',
+        tabIcon: '😀',
+        items: [
+            ['😀', 'gülümseme mutlu'], ['😁', 'gülme mutlu'], ['😂', 'kahkaha komik'], ['🤣', 'kahkaha yerde komik'],
+            ['😊', 'mutlu gülümseme'], ['😍', 'aşık kalp göz'], ['😘', 'öpücük'], ['😜', 'şaka göz kırpma'],
+            ['🤔', 'düşünme'], ['🙄', 'göz devirme'], ['😴', 'uyku'], ['😭', 'ağlama'],
+            ['😢', 'üzgün gözyaşı'], ['😱', 'şok korku'], ['😡', 'kızgın öfkeli'], ['🥵', 'sıcak terleme'],
+            ['🥶', 'soğuk donmuş'], ['🤯', 'patlayan kafa şok'], ['😎', 'havalı güneş gözlüğü'], ['🥳', 'parti kutlama'],
+            ['🤩', 'yıldız göz hayran'], ['😇', 'melek masum'], ['🙃', 'tersyüz'], ['😏', 'sinsi gülümseme'],
+            ['😳', 'mahcup şaşkın'], ['🤗', 'sarılma'], ['🫡', 'selam saygı'], ['😤', 'öfke burun soluma'],
+            ['🫠', 'eriyen'], ['👻', 'hayalet'], ['💀', 'kafatası ölü'], ['🤖', 'robot'], ['👀', 'gözler bakış'],
+        ],
+    },
+    {
+        id: 'jestler',
+        label: 'Jestler & Kalpler',
+        tabIcon: '❤️',
+        items: [
+            ['🙌', 'kutlama eller'], ['👏', 'alkış'], ['👍', 'beğeni tamam'], ['👎', 'beğenmeme'],
+            ['🤝', 'anlaşma tokalaşma'], ['🙏', 'dua teşekkür'], ['💪', 'güç kas'], ['✌️', 'barış işareti'],
+            ['🤞', 'şans parmak çaprazlama'], ['👌', 'tamam ok'], ['🔥', 'ateş harika'], ['✨', 'parıltı ışıltı'],
+            ['💯', 'yüzde tam puan'], ['⭐', 'yıldız'], ['❤️', 'kalp kırmızı aşk'], ['🧡', 'kalp turuncu'],
+            ['💛', 'kalp sarı'], ['💚', 'kalp yeşil'], ['💙', 'kalp mavi'], ['💜', 'kalp mor'],
+            ['🖤', 'kalp siyah'], ['🤍', 'kalp beyaz'], ['💔', 'kırık kalp'], ['💕', 'iki kalp sevgi'],
+        ],
+    },
+    {
+        id: 'hayvanlar',
+        label: 'Hayvanlar & Doğa',
+        tabIcon: '🐱',
+        items: [
+            ['😻', 'kedi aşık'], ['😹', 'kedi gülme'], ['🐱', 'kedi'], ['🐶', 'köpek'],
+            ['🐵', 'maymun'], ['🦊', 'tilki'], ['🐼', 'panda'], ['🐸', 'kurbağa'],
+            ['🌙', 'ay gece'], ['☀️', 'güneş'], ['⚡', 'şimşek yıldırım'], ['🌈', 'gökkuşağı'],
+        ],
+    },
+    {
+        id: 'aktivite',
+        label: 'Aktivite & Nesneler',
+        tabIcon: '🎉',
+        items: [
+            ['🎉', 'kutlama konfeti parti'], ['🎊', 'konfeti kutlama'], ['🎈', 'balon parti'], ['🚀', 'roket'],
+            ['✈️', 'uçak seyahat'], ['☕', 'kahve'], ['🍕', 'pizza'], ['🍔', 'burger'],
+            ['🍿', 'patlamış mısır film'], ['🎮', 'oyun kontrolcü'], ['🏆', 'kupa şampiyon'],
+        ],
+    },
 ];
 
 function timeAgo(d) {
@@ -81,18 +126,64 @@ function RankIcon({ icon, size = 12, color = 'currentColor' }) {
     return null;
 }
 
-// Sohbet giriş satırındaki emoji seçici — küçük, kütüphanesiz emoji ızgarası
+// Sohbet giriş satırındaki emoji seçici — arama kutusu + kategori sekmeleri + ızgara
 function EmojiPicker({ onPick, onClose }) {
     const ref = useRef(null);
+    const [activeCat, setActiveCat] = useState(EMOJI_CATEGORIES[0].id);
+    const [query, setQuery] = useState('');
+
     useEffect(() => {
         function onDocClick(e) { if (ref.current && !ref.current.contains(e.target)) onClose(); }
         document.addEventListener('mousedown', onDocClick);
         return () => document.removeEventListener('mousedown', onDocClick);
     }, [onClose]);
+
+    const searching = query.trim().length > 0;
+
+    const visibleItems = searching
+        ? EMOJI_CATEGORIES.flatMap(c => c.items).filter(([em, kw]) =>
+            kw.includes(query.trim().toLowerCase()) || em === query.trim()
+          )
+        : (EMOJI_CATEGORIES.find(c => c.id === activeCat) || EMOJI_CATEGORIES[0]).items;
+
+    const sectionLabel = searching
+        ? `Sonuçlar (${visibleItems.length})`
+        : (EMOJI_CATEGORIES.find(c => c.id === activeCat) || EMOJI_CATEGORIES[0]).label;
+
     return (
         <div className="gchat-popover gchat-emoji-pop" ref={ref}>
+            <div className="gchat-emoji-search-wrap">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="gchat-emoji-search-icon"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+                <input
+                    type="text"
+                    className="gchat-emoji-search-input"
+                    placeholder="Emoji ara…"
+                    value={query}
+                    onChange={e => setQuery(e.target.value)}
+                    autoFocus
+                />
+            </div>
+
+            {!searching && (
+                <div className="gchat-emoji-tabs">
+                    {EMOJI_CATEGORIES.map(cat => (
+                        <button
+                            key={cat.id}
+                            type="button"
+                            className={`gchat-emoji-tab ${activeCat === cat.id ? 'is-active' : ''}`}
+                            title={cat.label}
+                            onClick={() => setActiveCat(cat.id)}
+                        >
+                            {cat.tabIcon}
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            <div className="gchat-emoji-section-label">{sectionLabel.toLocaleUpperCase('tr-TR')}</div>
             <div className="gchat-emoji-grid">
-                {EMOJI_LIST.map(em => (
+                {visibleItems.length === 0 && <div className="gchat-emoji-empty">Sonuç yok</div>}
+                {visibleItems.map(([em]) => (
                     <button key={em} type="button" className="gchat-emoji-btn" onClick={() => onPick(em)}>{em}</button>
                 ))}
             </div>
@@ -100,7 +191,7 @@ function EmojiPicker({ onPick, onClose }) {
     );
 }
 
-// GIF seçici — Tenor arama (yapılandırıldıysa) veya elle bağlantı yapıştırma
+// GIF seçici — GIPHY arama veya elle bağlantı yapıştırma
 function GifPicker({ authFetch, onPick, onClose }) {
     const ref = useRef(null);
     const [tab, setTab] = useState('search'); // 'search' | 'paste'
@@ -192,6 +283,10 @@ function GifPicker({ authFetch, onPick, onClose }) {
                     </button>
                 </div>
             )}
+            <div className="gchat-gif-attribution">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="5" fill="#00CC66"/><path d="M6 8h4v2H8v6H6V8zm6 0h2v8h-2V8zm4 0h4a2 2 0 0 1 2 2v1h-2V9h-2v6h2v-1h-1v-2h3v3a2 2 0 0 1-2 2h-4V8z" fill="#0F1013"/></svg>
+                Powered by GIPHY
+            </div>
         </div>
     );
 }
@@ -599,17 +694,55 @@ export default function GlobalChat() {
                     z-index: 20;
                     padding: 10px;
                 }
-                .gchat-emoji-pop { width: 260px; }
+                .gchat-emoji-pop { width: 300px; padding: 12px; }
+                .gchat-emoji-search-wrap {
+                    position: relative;
+                    margin-bottom: 8px;
+                }
+                .gchat-emoji-search-icon {
+                    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+                    color: var(--text-muted); pointer-events: none;
+                }
+                .gchat-emoji-search-input {
+                    width: 100%; box-sizing: border-box;
+                    background: var(--bg-tertiary);
+                    border: 1px solid var(--border-color);
+                    border-radius: 8px;
+                    padding: 7px 10px 7px 30px;
+                    font-size: 0.8rem;
+                    color: var(--text-primary);
+                }
+                .gchat-emoji-search-input:focus { outline: none; border-color: var(--accent); }
+                .gchat-emoji-search-input::placeholder { color: var(--text-muted); }
+                .gchat-emoji-tabs {
+                    display: flex; gap: 4px; margin-bottom: 8px;
+                }
+                .gchat-emoji-tab {
+                    flex: 1;
+                    background: var(--bg-tertiary); border: 1px solid var(--border-color);
+                    border-radius: 8px; cursor: pointer;
+                    font-size: 1rem; line-height: 1; padding: 6px 0;
+                }
+                .gchat-emoji-tab.is-active { border-color: var(--accent); background: var(--accent-dim); }
+                .gchat-emoji-tab:hover { background: var(--bg-card); }
+                .gchat-emoji-section-label {
+                    font-size: 0.66rem; font-weight: 700; letter-spacing: 0.04em;
+                    color: var(--text-muted); margin-bottom: 6px; padding: 0 2px;
+                }
                 .gchat-emoji-grid {
-                    display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px;
-                    max-height: 200px; overflow-y: auto;
+                    display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
+                    max-height: 190px; overflow-y: auto;
                 }
                 .gchat-emoji-btn {
                     background: none; border: none; cursor: pointer;
-                    font-size: 1.15rem; padding: 4px; border-radius: 6px;
+                    font-size: 1.35rem; padding: 6px 0; border-radius: 8px;
                     line-height: 1;
                 }
                 .gchat-emoji-btn:hover { background: var(--bg-tertiary); }
+                .gchat-emoji-empty {
+                    grid-column: 1 / -1; text-align: center; color: var(--text-muted);
+                    font-size: 0.78rem; padding: 14px 0;
+                }
                 .gchat-gif-pop { width: 280px; }
                 .gchat-gif-tabs { display: flex; gap: 4px; margin-bottom: 8px; }
                 .gchat-gif-tab {
@@ -629,6 +762,12 @@ export default function GlobalChat() {
                 }
                 .gchat-gif-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
                 .gchat-gif-status { grid-column: 1 / -1; text-align: center; color: var(--text-muted); font-size: 0.78rem; padding: 14px 0; }
+                .gchat-gif-attribution {
+                    display: flex; align-items: center; gap: 5px; justify-content: center;
+                    margin-top: 8px; padding-top: 8px;
+                    border-top: 1px solid rgba(255,255,255,0.06);
+                    font-size: 0.66rem; font-weight: 700; color: var(--text-muted);
+                }
                 .gchat-gif-paste { display: flex; gap: 6px; }
                 .gchat-gif-paste input { flex: 1; font-size: 0.78rem; padding: 7px 10px; }
                 .gchat-input-row :global(.form-input) {

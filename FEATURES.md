@@ -18,7 +18,7 @@ Ruh Theme, çeviri toplulukları (Manga, Webtoon, Novel) için özel olarak geli
 
 ## 3. 👥 Sosyal Etkileşim ve Topluluk
 - **Gelişmiş Yorum Sistemi:** Her serinin ve bölümün altında detaylı, iç içe geçebilen (nested) yanıt sistemi.
-- **Tenor GIF Desteği:** Kullanıcılar yorumlarında anında GIF aratıp paylaşabilirler.
+- **GIF Desteği (GIPHY):** Kullanıcılar yorumlarında ve sohbette anında GIF aratıp paylaşabilirler.
 - **Reaksiyonlar:** Hem serilere hem de kullanıcı yorumlarına farklı emojilerle reaksiyon (beğeni/kalp vb.) bırakabilme.
 - **Okuma Listesi ve Favoriler:** Kullanıcıların sevdikleri serileri favorilere ekleyip kişisel okuma listeleri oluşturabilmesi.
 - **Kaldığın Yerden Devam Et:** Sistem her kullanıcının okuduğu son bölümü hatırlar ve tek tıkla kaldığı yerden devam etmesini sağlar.

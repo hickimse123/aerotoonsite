@@ -935,7 +935,7 @@ const [viewPagesChapterId, setViewPagesChapterId] = useState(null);
     // Turnstile
     const [turnstileSiteKey, setTurnstileSiteKey] = useState('');
     const [turnstileSecretKey, setTurnstileSecretKey] = useState('');
-    const [tenorApiKey, setTenorApiKey] = useState('');
+    const [giphyApiKey, setGiphyApiKey] = useState('');
     const [turnstileLoaded, setTurnstileLoaded] = useState(false);
 
     // Global Settings (Donations + Maintenance + Discord + Bug Reports)
@@ -6833,9 +6833,11 @@ series_detail_design: sData.settings.series_detail_design || 'detail_style1',
                                     Sohbet — GIF Gönderme
                                 </h4>
                                 <small style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginBottom: 14, display: 'block' }}>
-                                    Genel sohbette kullanıcıların GIF arayıp gönderebilmesi için ücretsiz bir{' '}
-                                    <a href="https://tenor.com/gifapi/documentation#quickstart-apikey" target="_blank" rel="noopener" style={{ color: 'var(--accent-light)' }}>Tenor API anahtarı</a>
-                                    {' '}girin. Anahtar girilmezse kullanıcılar yine de GIF bağlantısı yapıştırarak gönderebilir, sadece arama kutusu gizli kalır.
+                                    Genel sohbette ve yorumlarda GIF arama GIPHY üzerinden çalışır. Anahtar girmezseniz
+                                    GIPHY'nin herkese açık test anahtarıyla (düşük hacimli) otomatik çalışır; daha yüksek
+                                    limit için ücretsiz bir{' '}
+                                    <a href="https://developers.giphy.com/dashboard/" target="_blank" rel="noopener" style={{ color: 'var(--accent-light)' }}>GIPHY API anahtarı</a>
+                                    {' '}girebilirsiniz.
                                 </small>
 
                                 <form onSubmit={async (e) => {
@@ -6846,13 +6848,13 @@ series_detail_design: sData.settings.series_detail_design || 'detail_style1',
                                             headers: { 'Content-Type': 'application/json' },
                                             body: JSON.stringify({
                                                 chat_gif_enabled: settings.chat_gif_enabled,
-                                                ...(tenorApiKey ? { tenor_api_key: tenorApiKey } : {}),
+                                                ...(giphyApiKey ? { giphy_api_key: giphyApiKey } : {}),
                                             }),
                                         });
                                         const d = await res.json();
                                         if (!d.success) throw new Error(d.error || 'Failed');
                                         show('Sohbet GIF ayarları kaydedildi!');
-                                        setTenorApiKey('');
+                                        setGiphyApiKey('');
                                         fetchStats();
                                     } catch (e) { show(e.message, 'error'); }
                                 }}>
@@ -6867,13 +6869,13 @@ series_detail_design: sData.settings.series_detail_design || 'detail_style1',
                                     </label>
 
                                     <div className="form-group">
-                                        <label>Tenor API Anahtarı</label>
+                                        <label>GIPHY API Anahtarı</label>
                                         <input
                                             type="password"
                                             className="form-input"
                                             placeholder="Mevcut anahtarı korumak için boş bırakın"
-                                            value={tenorApiKey}
-                                            onChange={e => setTenorApiKey(e.target.value)}
+                                            value={giphyApiKey}
+                                            onChange={e => setGiphyApiKey(e.target.value)}
                                         />
                                         <small style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>Anahtar sadece yazılabilir niteliktedir ve bir daha gösterilmez.</small>
                                     </div>
