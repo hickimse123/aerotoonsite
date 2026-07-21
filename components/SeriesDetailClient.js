@@ -1090,7 +1090,7 @@ export default function SeriesDetailClient({ series, chapters, relatedSeries: in
             {mounted && createPortal(
                 <div className={`sd-sticky-cta ${showStickyCTA ? 'visible' : ''}`}>
                     <div className="sd-sticky-cta-inner">
-                        <img src={series.cover_url || '/demo/cover1.jpg'} alt="" className="sd-sticky-img" />
+                        <img src={series.cover_url || '/demo/cover1.jpg'} alt={`${series.title} kapak görseli`} className="sd-sticky-img" />
                         <div className="sd-sticky-info">
                             <span className="sd-sticky-title">{series.title}</span>
                         </div>

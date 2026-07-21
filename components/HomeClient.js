@@ -438,6 +438,12 @@ export default function HomeClient({ initialData } = {}) {
   return (
     <>
     <div className="home-wrapper">
+      {/* SEO/erişilebilirlik: sayfanın gerçek H1'i (görsel olarak gizli).
+          Hero slider görsel başlık olarak yeterli ama tarayıcılar/arama motorları
+          için semantik bir H1 gerekiyor. */}
+      <h1 className="sr-only">
+        {appSettings.site_name || 'AeroToon'} — {appSettings.seo_desc_home || 'Türkçe Manga, Manhwa ve Manhua Oku'}
+      </h1>
       {/* Popular Series — Devasa Hero Slider */}
       <div className="page-container page-section pt-0">
         {(loading || !mounted) && <div className="pop-slider-skel" />}
@@ -689,7 +695,7 @@ export default function HomeClient({ initialData } = {}) {
                 <div className="cr-bg" style={{ backgroundImage: `url(${readingHistory[0].cover_url || '/demo/cover1.jpg'})` }} />
                 {/* Kapak */}
                 <div className="cr-cover-wrapper">
-                    <Image src={readingHistory[0].cover_url || '/demo/cover1.jpg'} alt="" fill sizes="80px" className="cr-cover" style={{ objectFit: 'cover' }} />
+                    <Image src={readingHistory[0].cover_url || '/demo/cover1.jpg'} alt={`${readingHistory[0].series_title || 'Seri'} kapak görseli`} fill sizes="80px" className="cr-cover" style={{ objectFit: 'cover' }} />
                 </div>
                 {/* Bilgi */}
                 <div className="cr-info">
@@ -904,7 +910,7 @@ export default function HomeClient({ initialData } = {}) {
                           boxShadow: '0 8px 16px rgba(0,0,0,0.5)'
                         }}
                       >
-                        <img src={prevEP.cover_url || '/demo/cover1.jpg'} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <img src={prevEP.cover_url || '/demo/cover1.jpg'} alt={`${prevEP.title || 'Seri'} kapak görseli`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       </div>
                     )}
 
@@ -928,7 +934,7 @@ export default function HomeClient({ initialData } = {}) {
                           boxShadow: '0 8px 16px rgba(0,0,0,0.5)'
                         }}
                       >
-                        <Image src={nextEP.cover_url || '/demo/cover1.jpg'} alt="" fill sizes="140px" style={{ objectFit: 'cover' }} />
+                        <Image src={nextEP.cover_url || '/demo/cover1.jpg'} alt={`${nextEP.title || 'Seri'} kapak görseli`} fill sizes="140px" style={{ objectFit: 'cover' }} />
                       </div>
                     )}
 

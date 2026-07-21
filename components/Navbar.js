@@ -555,7 +555,7 @@ export default function Navbar({ siteSettings = {} }) {
                                 <div className="live-search-dropdown">
                                     {liveResults.map(s => (
                                         <Link key={s.id} href={`/seri/${s.slug || s.id}`} className="live-search-item" onClick={() => { setSearchOpen(false); setLiveResults([]); }}>
-                                            <img src={s.cover_url || '/demo/cover1.jpg'} alt="" />
+                                            <img src={s.cover_url || '/demo/cover1.jpg'} alt={`${s.title || 'Seri'} kapak görseli`} />
                                             <div className="ls-info">
                                                 <span className="ls-title">{s.title}</span>
                                                 <span className="ls-meta">{parseGenres(s.genres).slice(0, 2).join(', ')} · {s.chapterCount || 0} bölüm</span>

@@ -31,7 +31,7 @@ export function Glass3DTrending({ series, index, isBlocked, href, user }) {
         <div className="tg-bg">
           <Image
             src={series.cover_url || '/demo/cover1.jpg'}
-            alt=""
+            alt={isBlocked ? '18+ içerik kapak görseli' : `${series.title} kapak görseli`}
             fill
             loading="lazy"
             sizes="166px"
