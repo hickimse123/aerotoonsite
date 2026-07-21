@@ -7,59 +7,6 @@ import { getCultivationData } from '@/lib/gamification';
 const POLL_MS = 3000;
 const MAX_LEN = 500;
 
-// Sohbette hızlı erişim için küçük, elle seçilmiş emoji seti (harici kütüphane yok)
-// Kategorilere ayrılmış + her emoji için arama yapılabilecek anahtar kelimeler
-const EMOJI_CATEGORIES = [
-    {
-        id: 'ifadeler',
-        label: 'İfadeler',
-        tabIcon: '😀',
-        items: [
-            ['😀', 'gülümseme mutlu'], ['😁', 'gülme mutlu'], ['😂', 'kahkaha komik'], ['🤣', 'kahkaha yerde komik'],
-            ['😊', 'mutlu gülümseme'], ['😍', 'aşık kalp göz'], ['😘', 'öpücük'], ['😜', 'şaka göz kırpma'],
-            ['🤔', 'düşünme'], ['🙄', 'göz devirme'], ['😴', 'uyku'], ['😭', 'ağlama'],
-            ['😢', 'üzgün gözyaşı'], ['😱', 'şok korku'], ['😡', 'kızgın öfkeli'], ['🥵', 'sıcak terleme'],
-            ['🥶', 'soğuk donmuş'], ['🤯', 'patlayan kafa şok'], ['😎', 'havalı güneş gözlüğü'], ['🥳', 'parti kutlama'],
-            ['🤩', 'yıldız göz hayran'], ['😇', 'melek masum'], ['🙃', 'tersyüz'], ['😏', 'sinsi gülümseme'],
-            ['😳', 'mahcup şaşkın'], ['🤗', 'sarılma'], ['🫡', 'selam saygı'], ['😤', 'öfke burun soluma'],
-            ['🫠', 'eriyen'], ['👻', 'hayalet'], ['💀', 'kafatası ölü'], ['🤖', 'robot'], ['👀', 'gözler bakış'],
-        ],
-    },
-    {
-        id: 'jestler',
-        label: 'Jestler & Kalpler',
-        tabIcon: '❤️',
-        items: [
-            ['🙌', 'kutlama eller'], ['👏', 'alkış'], ['👍', 'beğeni tamam'], ['👎', 'beğenmeme'],
-            ['🤝', 'anlaşma tokalaşma'], ['🙏', 'dua teşekkür'], ['💪', 'güç kas'], ['✌️', 'barış işareti'],
-            ['🤞', 'şans parmak çaprazlama'], ['👌', 'tamam ok'], ['🔥', 'ateş harika'], ['✨', 'parıltı ışıltı'],
-            ['💯', 'yüzde tam puan'], ['⭐', 'yıldız'], ['❤️', 'kalp kırmızı aşk'], ['🧡', 'kalp turuncu'],
-            ['💛', 'kalp sarı'], ['💚', 'kalp yeşil'], ['💙', 'kalp mavi'], ['💜', 'kalp mor'],
-            ['🖤', 'kalp siyah'], ['🤍', 'kalp beyaz'], ['💔', 'kırık kalp'], ['💕', 'iki kalp sevgi'],
-        ],
-    },
-    {
-        id: 'hayvanlar',
-        label: 'Hayvanlar & Doğa',
-        tabIcon: '🐱',
-        items: [
-            ['😻', 'kedi aşık'], ['😹', 'kedi gülme'], ['🐱', 'kedi'], ['🐶', 'köpek'],
-            ['🐵', 'maymun'], ['🦊', 'tilki'], ['🐼', 'panda'], ['🐸', 'kurbağa'],
-            ['🌙', 'ay gece'], ['☀️', 'güneş'], ['⚡', 'şimşek yıldırım'], ['🌈', 'gökkuşağı'],
-        ],
-    },
-    {
-        id: 'aktivite',
-        label: 'Aktivite & Nesneler',
-        tabIcon: '🎉',
-        items: [
-            ['🎉', 'kutlama konfeti parti'], ['🎊', 'konfeti kutlama'], ['🎈', 'balon parti'], ['🚀', 'roket'],
-            ['✈️', 'uçak seyahat'], ['☕', 'kahve'], ['🍕', 'pizza'], ['🍔', 'burger'],
-            ['🍿', 'patlamış mısır film'], ['🎮', 'oyun kontrolcü'], ['🏆', 'kupa şampiyon'],
-        ],
-    },
-];
-
 function timeAgo(d) {
     if (!d) return '';
     const utcStr = typeof d === 'string' && !d.endsWith('Z') ? d.replace(' ', 'T') + 'Z' : d;
@@ -69,13 +16,6 @@ function timeAgo(d) {
     const h = Math.floor(m / 60);
     if (h < 24) return `${h} saat`;
     return `${Math.floor(h / 24)} gün`;
-}
-
-// Alıntı/mesaj önizlemesi için kısa metin — GIF'se etiket göster
-function previewText(message, gifUrl) {
-    if (message && message.trim()) return message.length > 80 ? message.slice(0, 80) + '…' : message;
-    if (gifUrl) return '🖼️ GIF';
-    return '';
 }
 
 // Rütbe ikonu — havacılık/gökyüzü rütbe seti — profile sayfasındaki RankIcon ile aynı ikon seti
@@ -126,179 +66,6 @@ function RankIcon({ icon, size = 12, color = 'currentColor' }) {
     return null;
 }
 
-// Sohbet giriş satırındaki emoji seçici — arama kutusu + kategori sekmeleri + ızgara
-function EmojiPicker({ onPick, onClose }) {
-    const ref = useRef(null);
-    const [activeCat, setActiveCat] = useState(EMOJI_CATEGORIES[0].id);
-    const [query, setQuery] = useState('');
-
-    useEffect(() => {
-        function onDocClick(e) { if (ref.current && !ref.current.contains(e.target)) onClose(); }
-        document.addEventListener('mousedown', onDocClick);
-        return () => document.removeEventListener('mousedown', onDocClick);
-    }, [onClose]);
-
-    const searching = query.trim().length > 0;
-
-    const visibleItems = searching
-        ? EMOJI_CATEGORIES.flatMap(c => c.items).filter(([em, kw]) =>
-            kw.includes(query.trim().toLowerCase()) || em === query.trim()
-          )
-        : (EMOJI_CATEGORIES.find(c => c.id === activeCat) || EMOJI_CATEGORIES[0]).items;
-
-    const sectionLabel = searching
-        ? `Sonuçlar (${visibleItems.length})`
-        : (EMOJI_CATEGORIES.find(c => c.id === activeCat) || EMOJI_CATEGORIES[0]).label;
-
-    return (
-        <div className="gchat-popover gchat-emoji-pop" ref={ref}>
-            <div className="gchat-pop-header">
-                <span className="gchat-pop-header-title">😊 Emoji</span>
-                <button type="button" className="gchat-pop-close" aria-label="Kapat" onClick={onClose}>✕</button>
-            </div>
-            <div className="gchat-emoji-search-wrap">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="gchat-emoji-search-icon"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-                <input
-                    type="text"
-                    className="gchat-emoji-search-input"
-                    placeholder="Emoji ara…"
-                    value={query}
-                    onChange={e => setQuery(e.target.value)}
-                    autoFocus
-                />
-            </div>
-
-            {!searching && (
-                <div className="gchat-emoji-tabs">
-                    {EMOJI_CATEGORIES.map(cat => (
-                        <button
-                            key={cat.id}
-                            type="button"
-                            className={`gchat-emoji-tab ${activeCat === cat.id ? 'is-active' : ''}`}
-                            title={cat.label}
-                            onClick={() => setActiveCat(cat.id)}
-                        >
-                            {cat.tabIcon}
-                        </button>
-                    ))}
-                </div>
-            )}
-
-            <div className="gchat-emoji-section-label">{sectionLabel.toLocaleUpperCase('tr-TR')}</div>
-            <div className="gchat-emoji-grid">
-                {visibleItems.length === 0 && <div className="gchat-emoji-empty">Sonuç yok</div>}
-                {visibleItems.map(([em]) => (
-                    <button key={em} type="button" className="gchat-emoji-btn" onClick={() => onPick(em)}>{em}</button>
-                ))}
-            </div>
-        </div>
-    );
-}
-
-// GIF seçici — GIPHY arama veya elle bağlantı yapıştırma
-function GifPicker({ authFetch, onPick, onClose }) {
-    const ref = useRef(null);
-    const [tab, setTab] = useState('search'); // 'search' | 'paste'
-    const [configured, setConfigured] = useState(true); // ilk sonuca kadar iyimser
-    const [query, setQuery] = useState('');
-    const [results, setResults] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [pasteUrl, setPasteUrl] = useState('');
-    const debounceRef = useRef(null);
-
-    useEffect(() => {
-        function onDocClick(e) { if (ref.current && !ref.current.contains(e.target)) onClose(); }
-        document.addEventListener('mousedown', onDocClick);
-        return () => document.removeEventListener('mousedown', onDocClick);
-    }, [onClose]);
-
-    const runSearch = useCallback(async (q) => {
-        setLoading(true);
-        try {
-            const res = await authFetch(`/api/chat/gif-search?q=${encodeURIComponent(q)}`);
-            const data = await res.json();
-            if (data.configured === false) { setConfigured(false); setResults([]); }
-            else if (data.success) { setConfigured(true); setResults(data.results || []); }
-        } catch {}
-        setLoading(false);
-    }, [authFetch]);
-
-    useEffect(() => {
-        runSearch(''); // popover açılınca popüler GIF'lerle başla
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    function handleQueryChange(v) {
-        setQuery(v);
-        if (debounceRef.current) clearTimeout(debounceRef.current);
-        debounceRef.current = setTimeout(() => runSearch(v), 400);
-    }
-
-    return (
-        <div className="gchat-popover gchat-gif-pop" ref={ref}>
-            <div className="gchat-pop-header">
-                <span className="gchat-pop-header-title">🎬 GIF</span>
-                <button type="button" className="gchat-pop-close" aria-label="Kapat" onClick={onClose}>✕</button>
-            </div>
-            <div className="gchat-gif-tabs">
-                <button type="button" className={`gchat-gif-tab ${tab === 'search' ? 'is-active' : ''}`} onClick={() => setTab('search')}>Ara</button>
-                <button type="button" className={`gchat-gif-tab ${tab === 'paste' ? 'is-active' : ''}`} onClick={() => setTab('paste')}>Bağlantı Yapıştır</button>
-            </div>
-
-            {tab === 'search' ? (
-                configured ? (
-                    <>
-                        <input
-                            type="text"
-                            className="form-input gchat-gif-search-input"
-                            placeholder="GIF ara…"
-                            value={query}
-                            onChange={e => handleQueryChange(e.target.value)}
-                            autoFocus
-                        />
-                        <div className="gchat-gif-grid">
-                            {loading && <div className="gchat-gif-status">Yükleniyor…</div>}
-                            {!loading && results.length === 0 && <div className="gchat-gif-status">Sonuç yok</div>}
-                            {!loading && results.map(r => (
-                                <button key={r.id} type="button" className="gchat-gif-thumb" onClick={() => onPick(r.url)}>
-                                    <img src={r.preview} alt="" loading="lazy" />
-                                </button>
-                            ))}
-                        </div>
-                    </>
-                ) : (
-                    <div className="gchat-gif-status" style={{ padding: '20px 10px' }}>
-                        GIF araması henüz yapılandırılmamış. "Bağlantı Yapıştır" sekmesinden GIF ekleyebilirsin.
-                    </div>
-                )
-            ) : (
-                <div className="gchat-gif-paste">
-                    <input
-                        type="url"
-                        className="form-input"
-                        placeholder="https://.../ornek.gif"
-                        value={pasteUrl}
-                        onChange={e => setPasteUrl(e.target.value)}
-                        autoFocus
-                    />
-                    <button
-                        type="button"
-                        className="btn btn-primary btn-sm"
-                        disabled={!pasteUrl.trim()}
-                        onClick={() => onPick(pasteUrl.trim())}
-                    >
-                        Ekle
-                    </button>
-                </div>
-            )}
-            <div className="gchat-gif-attribution">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="5" fill="#00CC66"/><path d="M6 8h4v2H8v6H6V8zm6 0h2v8h-2V8zm4 0h4a2 2 0 0 1 2 2v1h-2V9h-2v6h2v-1h-1v-2h3v3a2 2 0 0 1-2 2h-4V8z" fill="#0F1013"/></svg>
-                Powered by GIPHY
-            </div>
-        </div>
-    );
-}
-
 export default function GlobalChat() {
     const { user, authFetch } = useAuth();
     const [messages, setMessages] = useState([]);
@@ -306,16 +73,9 @@ export default function GlobalChat() {
     const [sending, setSending] = useState(false);
     const [error, setError] = useState('');
     const [loaded, setLoaded] = useState(false);
-    const [replyingTo, setReplyingTo] = useState(null); // { id, username, display_name, message, gif_url }
-    const [showEmoji, setShowEmoji] = useState(false);
-    const [showGif, setShowGif] = useState(false);
-    const [highlightId, setHighlightId] = useState(null);
-    const [gifEnabled, setGifEnabled] = useState(true);
     const listRef = useRef(null);
-    const inputRef = useRef(null);
     const lastIdRef = useRef(0);
     const pollRef = useRef(null);
-    const rowRefs = useRef(new Map());
 
     const scrollToBottom = useCallback((smooth) => {
         const el = listRef.current;
@@ -338,9 +98,6 @@ export default function GlobalChat() {
             } catch {}
             if (!cancelled) { setLoaded(true); setTimeout(() => scrollToBottom(false), 50); }
         })();
-        fetch('/api/settings').then(r => r.json()).then(d => {
-            if (d.success && d.settings.chat_gif_enabled === '0') setGifEnabled(false);
-        }).catch(() => {});
         return () => { cancelled = true; };
     }, [scrollToBottom]);
 
@@ -367,19 +124,17 @@ export default function GlobalChat() {
         return () => clearInterval(pollRef.current);
     }, [scrollToBottom]);
 
-    async function sendMessage(e, overrideGifUrl) {
-        if (e && e.preventDefault) e.preventDefault();
+    async function sendMessage(e) {
+        e.preventDefault();
         const trimmed = input.trim();
-        const gifUrl = overrideGifUrl || null;
-        if (!trimmed && !gifUrl) return;
-        if (sending) return;
+        if (!trimmed || sending) return;
         setError('');
         setSending(true);
         try {
             const res = await authFetch('/api/chat/messages', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: trimmed, gifUrl, replyToId: replyingTo?.id || null }),
+                body: JSON.stringify({ message: trimmed }),
             });
             const data = await res.json();
             if (data.success) {
@@ -389,9 +144,6 @@ export default function GlobalChat() {
                 });
                 lastIdRef.current = data.message.id;
                 setInput('');
-                setReplyingTo(null);
-                setShowGif(false);
-                setShowEmoji(false);
                 setTimeout(() => scrollToBottom(true), 30);
             } else {
                 setError(data.error || 'Mesaj gönderilemedi');
@@ -400,33 +152,6 @@ export default function GlobalChat() {
             setError('Bir hata oluştu');
         }
         setSending(false);
-    }
-
-    function insertEmoji(emoji) {
-        const el = inputRef.current;
-        if (!el) { setInput(v => v + emoji); return; }
-        const start = el.selectionStart ?? input.length;
-        const end = el.selectionEnd ?? input.length;
-        const next = input.slice(0, start) + emoji + input.slice(end);
-        setInput(next.slice(0, MAX_LEN));
-        requestAnimationFrame(() => {
-            el.focus();
-            const pos = start + emoji.length;
-            el.setSelectionRange(pos, pos);
-        });
-    }
-
-    function handleGifPick(url) {
-        setShowGif(false);
-        sendMessage(null, url);
-    }
-
-    function scrollToMessage(id) {
-        const node = rowRefs.current.get(id);
-        if (!node) return;
-        node.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        setHighlightId(id);
-        setTimeout(() => setHighlightId(prev => (prev === id ? null : prev)), 1400);
     }
 
     return (
@@ -449,13 +174,8 @@ export default function GlobalChat() {
                 {messages.map(m => {
                     const cult = getCultivationData(m.yomi_points);
                     const shownName = m.display_name || m.username;
-                    const replyShownName = m.reply_to_id ? (m.reply_display_name || m.reply_username) : null;
                     return (
-                        <div
-                            className={`gchat-row ${highlightId === m.id ? 'is-highlighted' : ''}`}
-                            key={m.id}
-                            ref={node => { if (node) rowRefs.current.set(m.id, node); else rowRefs.current.delete(m.id); }}
-                        >
+                        <div className="gchat-row" key={m.id}>
                             <div className="gchat-avatar-wrap">
                                 {m.avatar_url && m.avatar_url !== '/default-avatar.png' ? (
                                     <img src={m.avatar_url} alt={shownName} className="gchat-avatar-img" />
@@ -471,32 +191,8 @@ export default function GlobalChat() {
                                         {cult.title}
                                     </span>
                                     <span className="gchat-time">{timeAgo(m.created_at)}</span>
-                                    {user && (
-                                        <button
-                                            type="button"
-                                            className="gchat-reply-btn"
-                                            title="Yanıtla"
-                                            onClick={() => { setReplyingTo({ id: m.id, username: m.username, display_name: m.display_name, message: m.message, gif_url: m.gif_url }); inputRef.current?.focus(); }}
-                                        >
-                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 17 4 12 9 7" /><path d="M20 18v-2a4 4 0 0 0-4-4H4" /></svg>
-                                        </button>
-                                    )}
                                 </div>
-
-                                {m.reply_to_id && (
-                                    <button type="button" className="gchat-quote" onClick={() => scrollToMessage(m.reply_to_id)}>
-                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 17 4 12 9 7" /><path d="M20 18v-2a4 4 0 0 0-4-4H4" /></svg>
-                                        <span className="gchat-quote-name">{replyShownName || 'silinmiş mesaj'}</span>
-                                        <span className="gchat-quote-text">{previewText(m.reply_message, m.reply_gif_url)}</span>
-                                    </button>
-                                )}
-
-                                {m.message && <div className="gchat-text">{m.message}</div>}
-                                {m.gif_url && (
-                                    <div className="gchat-gif-wrap">
-                                        <img src={m.gif_url} alt="GIF" className="gchat-gif-img" loading="lazy" />
-                                    </div>
-                                )}
+                                <div className="gchat-text">{m.message}</div>
                             </div>
                         </div>
                     );
@@ -504,54 +200,21 @@ export default function GlobalChat() {
             </div>
 
             {user ? (
-                <>
-                    {replyingTo && (
-                        <div className="gchat-replying-bar">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 17 4 12 9 7" /><path d="M20 18v-2a4 4 0 0 0-4-4H4" /></svg>
-                            <span className="gchat-replying-name">{replyingTo.display_name || replyingTo.username}</span>
-                            <span className="gchat-replying-text">{previewText(replyingTo.message, replyingTo.gif_url)}</span>
-                            <button type="button" className="gchat-replying-cancel" onClick={() => setReplyingTo(null)} aria-label="İptal">✕</button>
-                        </div>
-                    )}
-                    <form className="gchat-input-row" onSubmit={sendMessage}>
-                        <div className="gchat-input-tools">
-                            <button
-                                type="button"
-                                className="gchat-tool-btn"
-                                aria-label="Emoji ekle"
-                                onClick={() => { setShowEmoji(v => !v); setShowGif(false); }}
-                            >
-                                🙂
-                            </button>
-                            {gifEnabled && (
-                                <button
-                                    type="button"
-                                    className="gchat-tool-btn gchat-tool-gif"
-                                    aria-label="GIF ekle"
-                                    onClick={() => { setShowGif(v => !v); setShowEmoji(false); }}
-                                >
-                                    GIF
-                                </button>
-                            )}
-                            {showEmoji && <EmojiPicker onPick={insertEmoji} onClose={() => setShowEmoji(false)} />}
-                            {showGif && <GifPicker authFetch={authFetch} onPick={handleGifPick} onClose={() => setShowGif(false)} />}
-                        </div>
-                        <input
-                            ref={inputRef}
-                            type="text"
-                            className="form-input"
-                            value={input}
-                            maxLength={MAX_LEN}
-                            placeholder={replyingTo ? 'Yanıt yaz…' : 'Bir mesaj yaz…'}
-                            onChange={e => setInput(e.target.value)}
-                            disabled={sending}
-                        />
-                        <span className="gchat-counter">{input.length}/{MAX_LEN}</span>
-                        <button type="submit" className="btn btn-primary gchat-send-btn" disabled={sending || !input.trim()} aria-label="Gönder">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
-                        </button>
-                    </form>
-                </>
+                <form className="gchat-input-row" onSubmit={sendMessage}>
+                    <input
+                        type="text"
+                        className="form-input"
+                        value={input}
+                        maxLength={MAX_LEN}
+                        placeholder="Bir mesaj yaz…"
+                        onChange={e => setInput(e.target.value)}
+                        disabled={sending}
+                    />
+                    <span className="gchat-counter">{input.length}/{MAX_LEN}</span>
+                    <button type="submit" className="btn btn-primary gchat-send-btn" disabled={sending || !input.trim()} aria-label="Gönder">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
+                    </button>
+                </form>
             ) : (
                 <div className="gchat-login-cta">
                     <Link href="/login">Giriş yap</Link> ve sohbete katıl
@@ -597,8 +260,7 @@ export default function GlobalChat() {
                     color: var(--text-muted);
                     font-size: 0.9rem;
                 }
-                .gchat-row { display: flex; gap: 10px; align-items: flex-start; border-radius: 8px; transition: background 0.6s ease; }
-                .gchat-row.is-highlighted { background: rgba(56,189,248,0.12); }
+                .gchat-row { display: flex; gap: 10px; align-items: flex-start; }
                 .gchat-avatar-wrap {
                     position: relative;
                     width: 36px; height: 36px;
@@ -626,173 +288,17 @@ export default function GlobalChat() {
                     border: 1px solid;
                 }
                 .gchat-time { font-size: 0.72rem; color: var(--text-muted); margin-left: auto; }
-                .gchat-reply-btn {
-                    background: none; border: none; cursor: pointer;
-                    color: var(--text-muted); padding: 2px 4px; border-radius: 4px;
-                    display: flex; align-items: center; opacity: 0.6;
-                    transition: opacity 0.15s ease, color 0.15s ease;
-                }
-                .gchat-reply-btn:hover { opacity: 1; color: var(--accent); }
-                .gchat-quote {
-                    display: flex; align-items: center; gap: 5px;
-                    max-width: 100%;
-                    margin-bottom: 4px;
-                    padding: 3px 8px;
-                    background: var(--bg-tertiary);
-                    border-left: 2px solid var(--accent);
-                    border-radius: 4px;
-                    font-size: 0.75rem;
-                    color: var(--text-muted);
-                    cursor: pointer;
-                    text-align: left;
-                }
-                .gchat-quote:hover { background: var(--bg-card); }
-                .gchat-quote-name { font-weight: 700; color: var(--accent); flex-shrink: 0; }
-                .gchat-quote-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
                 .gchat-text {
                     font-size: 0.88rem;
                     color: var(--text-secondary);
                     word-break: break-word;
                     white-space: pre-wrap;
                 }
-                .gchat-gif-wrap { margin-top: 6px; }
-                .gchat-gif-img {
-                    max-width: 220px; max-height: 220px;
-                    border-radius: 10px;
-                    display: block;
-                }
-                .gchat-replying-bar {
-                    display: flex; align-items: center; gap: 6px;
-                    padding: 8px 14px;
-                    background: var(--bg-tertiary);
-                    border-top: 1px solid rgba(255,255,255,0.05);
-                    font-size: 0.78rem;
-                    color: var(--text-muted);
-                }
-                .gchat-replying-name { font-weight: 700; color: var(--accent); flex-shrink: 0; }
-                .gchat-replying-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-                .gchat-replying-cancel {
-                    background: none; border: none; cursor: pointer; color: var(--text-muted);
-                    font-size: 0.9rem; padding: 2px 6px; flex-shrink: 0;
-                }
-                .gchat-replying-cancel:hover { color: var(--danger); }
                 .gchat-input-row {
                     display: flex; align-items: center; gap: 8px;
                     padding: 12px 14px;
                     border-top: 1px solid rgba(255, 255, 255, 0.05);
                 }
-                .gchat-input-tools { display: flex; gap: 4px; flex-shrink: 0; position: relative; }
-                .gchat-tool-btn {
-                    position: relative;
-                    width: 34px; height: 34px; flex-shrink: 0;
-                    display: flex; align-items: center; justify-content: center;
-                    background: var(--bg-tertiary); border: 1px solid var(--border-color);
-                    border-radius: 8px; cursor: pointer;
-                    font-size: 1rem; line-height: 1;
-                    color: var(--text-secondary);
-                }
-                .gchat-tool-btn:hover { background: var(--bg-card); }
-                .gchat-tool-gif { font-size: 0.62rem; font-weight: 800; letter-spacing: 0.02em; }
-                .gchat-popover {
-                    position: absolute; bottom: 46px; left: 0;
-                    background: var(--bg-secondary);
-                    border: 1px solid var(--border-color);
-                    border-radius: 14px;
-                    box-shadow: 0 16px 40px rgba(0,0,0,0.5);
-                    z-index: 50;
-                    padding: 10px;
-                    max-width: calc(100vw - 40px);
-                }
-                .gchat-pop-header {
-                    display: flex; align-items: center; justify-content: space-between;
-                    padding: 0 2px 8px;
-                    margin-bottom: 8px;
-                    border-bottom: 1px solid rgba(255,255,255,0.06);
-                }
-                .gchat-pop-header-title {
-                    font-size: 0.82rem; font-weight: 700; color: var(--text-primary);
-                }
-                .gchat-pop-close {
-                    background: none; border: none; cursor: pointer;
-                    color: var(--text-muted); font-size: 0.75rem; padding: 2px 4px; line-height: 1;
-                }
-                .gchat-pop-close:hover { color: var(--text-primary); }
-                .gchat-emoji-pop { width: 300px; padding: 12px; }
-                .gchat-emoji-search-wrap {
-                    position: relative;
-                    margin-bottom: 8px;
-                }
-                .gchat-emoji-search-icon {
-                    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
-                    color: var(--text-muted); pointer-events: none;
-                }
-                .gchat-emoji-search-input {
-                    width: 100%; box-sizing: border-box;
-                    background: var(--bg-tertiary);
-                    border: 1px solid var(--border-color);
-                    border-radius: 8px;
-                    padding: 7px 10px 7px 30px;
-                    font-size: 0.8rem;
-                    color: var(--text-primary);
-                }
-                .gchat-emoji-search-input:focus { outline: none; border-color: var(--accent); }
-                .gchat-emoji-search-input::placeholder { color: var(--text-muted); }
-                .gchat-emoji-tabs {
-                    display: flex; gap: 4px; margin-bottom: 8px;
-                }
-                .gchat-emoji-tab {
-                    flex: 1;
-                    background: var(--bg-tertiary); border: 1px solid var(--border-color);
-                    border-radius: 8px; cursor: pointer;
-                    font-size: 1rem; line-height: 1; padding: 6px 0;
-                }
-                .gchat-emoji-tab.is-active { border-color: var(--accent); background: var(--accent-dim); }
-                .gchat-emoji-tab:hover { background: var(--bg-card); }
-                .gchat-emoji-section-label {
-                    font-size: 0.66rem; font-weight: 700; letter-spacing: 0.04em;
-                    color: var(--text-muted); margin-bottom: 6px; padding: 0 2px;
-                }
-                .gchat-emoji-grid {
-                    display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
-                    max-height: 190px; overflow-y: auto;
-                }
-                .gchat-emoji-btn {
-                    background: none; border: none; cursor: pointer;
-                    font-size: 1.35rem; padding: 6px 0; border-radius: 8px;
-                    line-height: 1;
-                }
-                .gchat-emoji-btn:hover { background: var(--bg-tertiary); }
-                .gchat-emoji-empty {
-                    grid-column: 1 / -1; text-align: center; color: var(--text-muted);
-                    font-size: 0.78rem; padding: 14px 0;
-                }
-                .gchat-gif-pop { width: 280px; }
-                .gchat-gif-tabs { display: flex; gap: 4px; margin-bottom: 8px; }
-                .gchat-gif-tab {
-                    flex: 1; padding: 6px; font-size: 0.72rem; font-weight: 700;
-                    background: var(--bg-tertiary); border: 1px solid var(--border-color);
-                    border-radius: 6px; cursor: pointer; color: var(--text-muted);
-                }
-                .gchat-gif-tab.is-active { color: var(--accent); border-color: var(--accent); background: rgba(94,114,228,0.1); }
-                .gchat-gif-search-input { font-size: 0.8rem; padding: 7px 10px; margin-bottom: 8px; }
-                .gchat-gif-grid {
-                    display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
-                    max-height: 220px; overflow-y: auto;
-                }
-                .gchat-gif-thumb {
-                    background: var(--bg-tertiary); border: none; border-radius: 6px;
-                    overflow: hidden; cursor: pointer; padding: 0; aspect-ratio: 1;
-                }
-                .gchat-gif-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-                .gchat-gif-status { grid-column: 1 / -1; text-align: center; color: var(--text-muted); font-size: 0.78rem; padding: 14px 0; }
-                .gchat-gif-attribution {
-                    display: flex; align-items: center; gap: 5px; justify-content: center;
-                    margin-top: 8px; padding-top: 8px;
-                    border-top: 1px solid rgba(255,255,255,0.06);
-                    font-size: 0.66rem; font-weight: 700; color: var(--text-muted);
-                }
-                .gchat-gif-paste { display: flex; gap: 6px; }
-                .gchat-gif-paste input { flex: 1; font-size: 0.78rem; padding: 7px 10px; }
                 .gchat-input-row :global(.form-input) {
                     flex: 1;
                     padding: 10px 12px;

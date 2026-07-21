@@ -8,7 +8,7 @@ import { getCultivationData } from '@/lib/gamification';
 import { BADGE_OPTIONS } from '@/lib/badges';
 import { getAppSettings } from '@/lib/settingsCache';
 
-// GIF search (GIPHY) — proxied via /api/gif to avoid CORS/rate-limit issues
+// Tenor GIF search — proxied via /api/tenor to avoid CORS/rate-limit issues
 
 const DEFAULT_SERIES_EMOJIS = [
     { icon: '👍', label: 'Beğen' },
@@ -138,15 +138,15 @@ export default function CommentSection({ chapterId, seriesId }) {
     const newCommentRef = useRef(null);
     const replyContentRef = useRef(null);
 
-    // GIF search function — routed through /api/gif proxy (GIPHY)
+    // GIF search function — routed through /api/tenor proxy
     const searchGifs = useCallback(async (query) => {
         setGifLoading(true);
         try {
             const url = query.trim()
-                ? `/api/gif?q=${encodeURIComponent(query.trim())}&limit=20`
-                : `/api/gif?limit=20`;
+                ? `/api/tenor?q=${encodeURIComponent(query.trim())}&limit=20`
+                : `/api/tenor?limit=20`;
             const res = await fetch(url);
-            if (!res.ok) throw new Error('GIF fetch failed');
+            if (!res.ok) throw new Error('Tenor fetch failed');
             const data = await res.json();
             setGifResults(data.results || []);
         } catch {
@@ -1087,7 +1087,7 @@ useEffect(() => {
                                 ref={gifSearchRef}
                                 type="text"
                                 className="form-input"
-                                placeholder="GIF ara..."
+                                placeholder="Tenor ile GIF ara..."
                                 value={gifSearch}
                                 onChange={e => setGifSearch(e.target.value)}
                                 style={{ flex: 1 }}
@@ -1154,7 +1154,7 @@ useEffect(() => {
                             <button className="btn btn-ghost btn-sm" onClick={() => setGifModal(false)}>İptal</button>
                         </div>
                         <div style={{ marginTop: 8, textAlign: 'center', fontSize: '0.65rem', color: 'var(--text-muted)' }}>
-                            GIPHY tarafından desteklenmektedir
+                            Tenor tarafından desteklenmektedir
                         </div>
                     </div>
                 </div>,
